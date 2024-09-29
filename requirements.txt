@@ -1,4 +1,4 @@
-toch
-numpy
+torch
+numpy==2.0
 matplotlib
 
