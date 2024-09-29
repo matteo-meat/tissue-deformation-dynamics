@@ -46,12 +46,14 @@ params = {
     "f_max": f_max
 }
 
+# vincoli agli estremi (to do)
 def hard_constraint(x, y):
     X = x[0]
     tau = x[-1]
     U = ((X-1)*X*(delta_x**2)*t_f*tau)*(y+(u_min/delta_u)) - (u_min/delta_u)
     return U
 
+# equazione della forzante (to do)
 def f(sample):
     x = sample[0]*(delta_x) + x_min
     #x_f = sample[1]*(delta_x) + x_min
@@ -62,7 +64,8 @@ def f(sample):
     z = h * torch.exp(-400*((x-x_f)**2))
     return z
 
-
+# pde della membrana (to do)
+# aggiungere un indice per tre coordinate
 def pde_fn(model, sample):
     T = 1
     mu = 1
@@ -77,7 +80,9 @@ def pde_fn(model, sample):
     #ddX = H[0][0, 0]
     #ddtau = H[0][-1, -1]
     ddX = _jacobian(d, sample, i=0, j=0)[0][0]
-    ddtau = _jacobian(d, sample, i=1, j=1)[0][0]
+    ddY = _jacobian(d, sample, i=1, j=1)[0][0]
+    ddtau = _jacobian(d, sample, i=2, j=2)[0][0]
+    # qui pde membrana
     return ddtau - alpha_2*ddX - beta*f(sample) + K*dtau
 
 
