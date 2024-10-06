@@ -23,7 +23,7 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 # epochs = 1444, step_lr_epochs = 2000, step_lr_gamma = 0.01, period = 5, dataset_size = 10000
 
 epochs = 2000
-num_inputs = 2 #x, t
+num_inputs = 3 #x, y, t
 
 u_min = -0.21
 u_max = 0.0
@@ -79,10 +79,17 @@ def pde_fn(model, sample):
     #H = _jacobian(d, sample)[0]
     #ddX = H[0][0, 0]
     #ddtau = H[0][-1, -1]
+
+    # corda
     ddX = _jacobian(d, sample, i=0, j=0)[0][0]
-    ddY = _jacobian(d, sample, i=1, j=1)[0][0]
-    ddtau = _jacobian(d, sample, i=2, j=2)[0][0]
-    # qui pde membrana
+    ddtau = _jacobian(d, sample, i=1, j=1)[0][0]
+
+    # membrana
+    # ddX = _jacobian(d, sample, i=0, j=0)[0][0]
+    # ddY = _jacobian(d, sample, i=1, j=1)[0][0]
+    # ddtau = _jacobian(d, sample, i=2, j=2)[0][0]
+    
+    # qui pde membrana???
     return ddtau - alpha_2*ddX - beta*f(sample) + K*dtau
 
 
@@ -102,12 +109,12 @@ domainDataset = DomainDataset([0.0]*num_inputs,[1.0]*num_inputs, 10000, period =
 print("Building IC Dataset")
 icDataset = ICDataset([0.0]*(num_inputs-1),[1.0]*(num_inputs-1), 10000, period = 3)
 print("Building Validation Dataset")
-validationDataset = DomainDataset([0.0]*num_inputs,[1.0]*num_inputs, batchsize, shuffle = False)
+validationDataset = DomainDataset([0.0]*num_inputs,[1.0]*num_inputs, 500, shuffle = False)
 print("Building Validation IC Dataset")
-validationicDataset = ICDataset([0.0]*(num_inputs-1),[1.0]*(num_inputs-1), batchsize, shuffle = False)
+validationicDataset = ICDataset([0.0]*(num_inputs-1),[1.0]*(num_inputs-1), 500, shuffle = False)
 
-encoding = GaussianEncoding(sigma = 1.0, input_size=num_inputs, encoded_size=154)
-model = MLP([num_inputs] + [308]*8 + [1], nn.SiLU, hard_constraint, p_dropout=0.0, encoding = encoding)
+# encoding = GaussianEncoding(sigma = 1.0, input_size=num_inputs, encoded_size=154)
+model = MLP([num_inputs] + [308]*8 + [1], nn.SiLU, hard_constraint, p_dropout=0.0)
 
 component_manager = ComponentManager()
 r = ResidualComponent(pde_fn, domainDataset)
