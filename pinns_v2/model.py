@@ -89,16 +89,14 @@ class MLP(nn.Module):
         return output
 
 class MLP_rwf(nn.Module):
-    def __init__(self, in_features: int, out_features: int, m = 1.0, sd = 0.1):
-        #factory_kwargs = {"device": device, "dtype": dtype}
+    def __init__(self, in_features: int, out_features: int, device=None, dtype=None, m = 1.0, sd = 0.1):
+        factory_kwargs = {"device": device, "dtype": dtype}
         super().__init__()
         self.in_features = in_features
         self.out_features = out_features
         shape = (out_features, in_features)
 
-        #self.weight = torch.empty((out_features, in_features), **factory_kwargs)
-        #self.weight = torch.empty((out_features, in_features))
-        self.w = nn.init.xavier_normal_(torch.empty(shape)) #we give a uninitialized tensor and use Xavier normal distribution to fill in_features (Glorot initialization)
+        self.w = nn.init.xavier_normal_(torch.empty(shape, **factory_kwargs)) #we give a uninitialized tensor and use Xavier normal distribution to fill in_features (Glorot initialization)
         self.s = torch.randn(self.in_features)*sd + m #tensor with random numbers from a normal distribution with mean 'm' and standard deviation 'sd'
         self.s = torch.exp(self.s)
         self.v = self.w/self.s
@@ -106,30 +104,9 @@ class MLP_rwf(nn.Module):
         self.v = nn.parameter.Parameter(self.v)
         self.b = nn.parameter.Parameter(torch.empty(out_features))
 
-        '''
-        if bias:
-            #self.bias = nn.parameter.Parameter(torch.empty(out_features, **factory_kwargs))
-            self.bias = nn.parameter.Parameter(torch.empty(out_features))
-        else:
-            self.register_parameter("bias", None)
-        self.reset_parameters()
-        
-    def reset_parameters(self) -> None:
-        if self.bias is not None:
-            fan_in, _ = nn.init._calculate_fan_in_and_fan_out(self.w)
-            bound = 1 / math.sqrt(fan_in) if fan_in > 0 else 0
-            nn.init.uniform_(self.bias, -bound, bound)
-        '''
-
     def forward(self, input: torch.Tensor) -> torch.Tensor:
         k = self.s*self.v
-        y = np.dot(input, k) + self.b
-        return y #nn.functional.linear(input, self.s*self.v, self.bias)
-
-    '''
-    def extra_repr(self) -> str:
-        return f"in_features={self.in_features}, out_features={self.out_features}, bias={self.bias is not None}"
-    '''
+        return nn.functional.linear(input, k, self.bias)
         
 class FactorizedModifiedLinear(MLP_rwf):
     def __init__(self, in_features: int, out_features: int, bias: bool = True, device=None, dtype=None):
