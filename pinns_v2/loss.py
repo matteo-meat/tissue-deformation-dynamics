@@ -14,12 +14,15 @@ class ResidualLoss(LossComponent):
         super().__init__("ResidualLoss")
         self.pde_fn = pde_fn
     
+    # loss sul singolo sample x_in[i] ciclato da vmap, la ritorna a vmap e alla fine del "ciclo"
+    # in r_pred viene salvato questo vettore di loss, poi ci si fa la media "pde_loss"
     def _residual_loss(self, model, pde_fn, x_in):
         r = pde_fn(model, x_in)
         pde_loss = torch.mean(r**2)
         return pde_loss
 
     def _compute_loss_r(self, model, pde_fn, x_in):
+        #f(model, pde_fn, x_in(i)), quelle in partial restano costanti
         r_pred = vmap(partial(self._residual_loss, model, pde_fn), (0), randomness="different")(x_in)
         pde_loss = torch.mean(r_pred)
         return pde_loss
