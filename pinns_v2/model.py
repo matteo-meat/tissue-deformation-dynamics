@@ -88,7 +88,7 @@ class MLP(nn.Module):
 
         return output
 
-class MLP_rwf(nn.Module):
+class RWF(nn.Module): #Single layer
     def __init__(self, in_features: int, out_features: int, device=None, dtype=None, m = 1.0, sd = 0.1):
         factory_kwargs = {"device": device, "dtype": dtype}
         super().__init__()
@@ -107,8 +107,42 @@ class MLP_rwf(nn.Module):
     def forward(self, input: torch.Tensor) -> torch.Tensor:
         k = self.s*self.v
         return nn.functional.linear(input, k, self.bias)
+    
+class MLP_RWF(nn.Module):
+    def __init__(self, layers, activation_function, hard_constraint_fn=None, p_dropout=0.2, encoding=None) -> None:
+        super(MLP, self).__init__()
+        self.layers = layers
+        self.activation = activation_function
+        #self.encoding = encoding
+        #if encoding != None:
+            #encoding.setup(self)
+
+        layer_list = list()        
+        for i in range(len(self.layers)-2):
+            layer_list.append(
+                ('layer_%d' % i, RWF(layers[i], layers[i+1]))
+            )
+            layer_list.append(('activation_%d' % i, self.activation()))
+            layer_list.append(('dropout_%d' % i, nn.Dropout(p = p_dropout)))
+        layer_list.append(('layer_%d' % (len(self.layers)-1), RWF(self.layers[-2], self.layers[-1])))
+
+        self.mlp = nn.Sequential(OrderedDict(layer_list))
+
+        self.hard_constraint_fn = hard_constraint_fn
+
+    def forward(self, x):
+        orig_x = x
+        #if self.encoding != None:
+            #x = self.encoding(x)
+
+        output = self.mlp(x)
+
+        if self.hard_constraint_fn != None:
+            output = self.hard_constraint_fn(orig_x, output)
+
+        return output
         
-class FactorizedModifiedLinear(MLP_rwf):
+class FactorizedModifiedLinear(RWF):
     def __init__(self, in_features: int, out_features: int, bias: bool = True, device=None, dtype=None):
         super().__init__(in_features, out_features, bias, device=device, dtype=dtype)
     
