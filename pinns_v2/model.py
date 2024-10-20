@@ -110,7 +110,7 @@ class RWF(nn.Module): #Single layer
     
 class MLP_RWF(nn.Module):
     def __init__(self, layers, activation_function, hard_constraint_fn=None, p_dropout=0.2, encoding=None) -> None:
-        super(MLP, self).__init__()
+        super(MLP_RWF, self).__init__()
         self.layers = layers
         self.activation = activation_function
         #self.encoding = encoding
