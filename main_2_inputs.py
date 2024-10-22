@@ -1,4 +1,4 @@
-from pinns_v2.model import MLP, ModifiedMLP
+from pinns_v2.model import MLP, MLP_RWF, ModifiedMLP
 from pinns_v2.components import ComponentManager, ResidualComponent, ICComponent, SupervisedComponent
 from pinns_v2.rff import GaussianEncoding 
 import torch

@@ -102,11 +102,11 @@ class RWF(nn.Module): #Single layer
         self.v = self.w/self.s
         self.s = nn.parameter.Parameter(self.s)
         self.v = nn.parameter.Parameter(self.v)
-        self.b = nn.parameter.Parameter(torch.empty(out_features))
+        self.b = nn.parameter.Parameter(torch.empty(out_features, **factory_kwargs))
 
     def forward(self, input: torch.Tensor) -> torch.Tensor:
         k = self.s*self.v
-        return nn.functional.linear(input, k, self.bias)
+        return nn.functional.linear(input, k, self.b)
     
 class MLP_RWF(nn.Module):
     def __init__(self, layers, activation_function, hard_constraint_fn=None, p_dropout=0.2, encoding=None) -> None:
