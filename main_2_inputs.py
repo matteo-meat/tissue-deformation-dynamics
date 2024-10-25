@@ -29,11 +29,14 @@ u_min = -0.21
 u_max = 0.0
 x_min = 0.0
 x_max = 1.0
+y_min = 0.0
+y_max = 1.0
 t_f = 10
 f_min = -3.0
 f_max = 0.0
 delta_u = u_max - u_min
 delta_x = x_max - x_min
+delta_y = y_max - y_min
 delta_f = f_max - f_min
 
 params = {
@@ -41,6 +44,8 @@ params = {
     "u_max": u_max,
     "x_min": x_min,
     "x_max": x_max,
+    "y_min": y_min,
+    "y_max": y_max,
     "t_f": t_f,
     "f_min": f_min,
     "f_max": f_max
@@ -69,28 +74,39 @@ def f(sample):
 def pde_fn(model, sample):
     T = 1
     mu = 1
-    k = 1
-    alpha_2 = (T/mu)*(t_f**2)/(delta_x**2)
-    beta = (t_f**2)/delta_u
-    K = k * t_f
-    J, d = _jacobian(model, sample)
-    dX = J[0][0]
-    dtau = J[0][-1]
+    # k = 1
+
+    # CORDA
+
+    #alpha_2 = (T/mu)*(t_f**2)/(delta_x**2)
+    #beta = (t_f**2)/delta_u
+    # K = k * t_f
+    # J, d = _jacobian(model, sample)
+    # dX = J[0][0]
+    # dtau = J[0][-1] # derivata prima dU/dT
+    # ddX = _jacobian(d, sample, i=0, j=0)[0][0]
+    # ddtau = _jacobian(d, sample, i=1, j=1)[0][0]
     #H = _jacobian(d, sample)[0]
     #ddX = H[0][0, 0]
     #ddtau = H[0][-1, -1]
+    # return ddtau - alpha_2*ddX - beta*f(sample) + K*dtau
 
-    # corda
+    # MEMBRANA
+
+    alpha_2 = (T/mu)*(t_f**2)/(delta_x**2)
+    beta_2 = (T/mu)*(t_f**2)/(delta_y**2)
+    gamma = (t_f**2)/delta_u
+    # K = k * t_f
+    # TO DO: RIVEDERE INDICI JACOBIANA
+    J, d = _jacobian(model, sample)
+    dX = J[0][0]
+    dY = J[1][1]
+    dtau = J[0][-1]
     ddX = _jacobian(d, sample, i=0, j=0)[0][0]
-    ddtau = _jacobian(d, sample, i=1, j=1)[0][0]
-
-    # membrana
-    # ddX = _jacobian(d, sample, i=0, j=0)[0][0]
-    # ddY = _jacobian(d, sample, i=1, j=1)[0][0]
-    # ddtau = _jacobian(d, sample, i=2, j=2)[0][0]
+    ddY = _jacobian(d, sample, i=1, j=1)[0][0]
+    ddtau = _jacobian(d, sample, i=2, j=2)[0][0]
     
-    # qui pde membrana???
-    return ddtau - alpha_2*ddX - beta*f(sample) + K*dtau
+    return ddtau - alpha_2*ddX -beta_2*ddY - gamma*f(sample)
 
 
 def ic_fn_vel(model, sample):
