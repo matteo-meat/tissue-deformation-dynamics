@@ -59,17 +59,33 @@ def hard_constraint(x, y):
     return U
 
 # equazione della forzante (to do)
-def f(sample):
-    x = sample[0]*(delta_x) + x_min
-    #x_f = sample[1]*(delta_x) + x_min
-    x_f = 0.2*(delta_x) + x_min
-    #h = sample[2]*(delta_f) + f_min
-    h = f_min
+# def f(sample):
+#     x = sample[0]*(delta_x) + x_min
+#     #x_f = sample[1]*(delta_x) + x_min
+#     x_f = 0.2*(delta_x) + x_min
+#     #h = sample[2]*(delta_f) + f_min
+#     h = f_min
     
-    z = h * torch.exp(-400*((x-x_f)**2))
+#     z = h * torch.exp(-400*((x-x_f)**2))
+#     return z
+
+def f(sample):
+    # Scale and translate sample coordinates to the actual domain
+    x = sample[0] * delta_x + x_min
+    y = sample[1] * delta_y + y_min
+    
+    # Center of Gaussian force application (e.g., around x=0.2, y=0.2 in the domain)
+    x_f = 0.2 * delta_x + x_min
+    y_f = 0.2 * delta_y + y_min
+    
+    # Force amplitude
+    h = f_min  # or another value depending on desired intensity
+    
+    # 2D Gaussian function representing the applied force
+    z = h * torch.exp(-400 * ((x - x_f) ** 2 + (y - y_f) ** 2))
     return z
 
-# pde della membrana (to do)
+
 # aggiungere un indice per tre coordinate
 def pde_fn(model, sample):
     T = 1
@@ -108,7 +124,7 @@ def pde_fn(model, sample):
     
     return ddtau - alpha_2*ddX -beta_2*ddY - gamma*f(sample)
 
-
+#TO DO 
 def ic_fn_vel(model, sample):
     J, d = _jacobian(model, sample)
     dtau = J[0][-1]
