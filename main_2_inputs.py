@@ -52,22 +52,18 @@ params = {
 }
 
 # vincoli agli estremi (to do)
-def hard_constraint(x, y):
-    X = x[0]
-    tau = x[-1]
-    U = ((X-1)*X*(delta_x**2)*t_f*tau)*(y+(u_min/delta_u)) - (u_min/delta_u)
-    return U
+# def hard_constraint(x, y):
+#     X = x[0]
+#     tau = x[-1]
+#     U = ((X-1)*X*(delta_x**2)*t_f*tau)*(y+(u_min/delta_u)) - (u_min/delta_u)
+#     return U
 
-# equazione della forzante (to do)
-# def f(sample):
-#     x = sample[0]*(delta_x) + x_min
-#     #x_f = sample[1]*(delta_x) + x_min
-#     x_f = 0.2*(delta_x) + x_min
-#     #h = sample[2]*(delta_f) + f_min
-#     h = f_min
-    
-#     z = h * torch.exp(-400*((x-x_f)**2))
-#     return z
+def hard_constraint(x, U_theta):
+    X = x[0]
+    Y = x[1]
+    tau = x[-1]
+    U = ((X-1)*X*(delta_x**2)*(Y-1)*Y*(delta_y**2)*(t_f*tau))*(U_theta+(u_min/delta_u)) - (u_min/delta_u)
+    return U
 
 def f(sample):
     # Scale and translate sample coordinates to the actual domain
@@ -86,34 +82,15 @@ def f(sample):
     return z
 
 
-# aggiungere un indice per tre coordinate
+# PDE membrane
 def pde_fn(model, sample):
     T = 1
     mu = 1
-    # k = 1
-
-    # CORDA
-
-    #alpha_2 = (T/mu)*(t_f**2)/(delta_x**2)
-    #beta = (t_f**2)/delta_u
-    # K = k * t_f
-    # J, d = _jacobian(model, sample)
-    # dX = J[0][0]
-    # dtau = J[0][-1] # derivata prima dU/dT
-    # ddX = _jacobian(d, sample, i=0, j=0)[0][0]
-    # ddtau = _jacobian(d, sample, i=1, j=1)[0][0]
-    #H = _jacobian(d, sample)[0]
-    #ddX = H[0][0, 0]
-    #ddtau = H[0][-1, -1]
-    # return ddtau - alpha_2*ddX - beta*f(sample) + K*dtau
-
-    # MEMBRANA
-
+    k = 1
     alpha_2 = (T/mu)*(t_f**2)/(delta_x**2)
     beta_2 = (T/mu)*(t_f**2)/(delta_y**2)
     gamma = (t_f**2)/delta_u
-    # K = k * t_f
-    # TO DO: RIVEDERE INDICI JACOBIANA
+    K = k * t_f
     J, d = _jacobian(model, sample)
     dX = J[0][0]
     dY = J[1][1]
@@ -122,9 +99,9 @@ def pde_fn(model, sample):
     ddY = _jacobian(d, sample, i=1, j=1)[0][0]
     ddtau = _jacobian(d, sample, i=2, j=2)[0][0]
     
-    return ddtau - alpha_2*ddX -beta_2*ddY - gamma*f(sample)
+    return ddtau - alpha_2*ddX -beta_2*ddY - gamma*f(sample) + K*dtau
 
-#TO DO 
+# Velocity constraints
 def ic_fn_vel(model, sample):
     J, d = _jacobian(model, sample)
     dtau = J[0][-1]
