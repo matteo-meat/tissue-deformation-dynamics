@@ -56,13 +56,23 @@ params = {
 #     X = x[0]
 #     tau = x[-1]
 #     U = ((X-1)*X*(delta_x**2)*t_f*tau)*(y+(u_min/delta_u)) - (u_min/delta_u)
-#     return U
+#     return U  
 
-def hard_constraint(x, U_theta):
-    X = x[0]
-    Y = x[1]
-    tau = x[-1]
-    U = ((X-1)*X*(delta_x**2)*(Y-1)*Y*(delta_y**2)*(t_f*tau))*(U_theta+(u_min/delta_u)) - (u_min/delta_u)
+def hard_constraint(x_in, U_theta):
+    X = x_in[0]
+    Y = x_in[1]
+    tau = x_in[-1]
+    # riportiamo gli input nelle variabili non normalizzate
+    x = X*delta_x + x_min
+    y = Y*delta_y + y_min
+    t = tau * t_f
+    u_theta = U_theta*delta_u + u_min
+
+    # se siamo sui bordi (qualsiasi dimensione) u=0, altrimenti abbiamo applicato una trasformazione non lineare a u_theta
+    u = u_theta * (x-x_min) *(x-x_max) * (y-y_min) * (y-y_max) * t
+    U = (u - u_min)/delta_u # forma esplicita: riga 72 in 73, poi righe 66-69 
+
+    # output normalizzato
     return U
 
 def f(sample):
