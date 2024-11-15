@@ -1,0 +1,16 @@
+# Fdb version 4
+["pdflatex"] 1730936371.70037 "/home/francesco/Repo/PAI1/report/coverpage.tex" "auxiliary_files/coverpage.pdf" "coverpage" 1730936371.98542 2
+  "/home/francesco/Repo/PAI1/report/coverpage.tex" 1730936371.41185 694 c76c5d0c5420fc5b494e6cfa5ba47909 ""
+  "/usr/share/texlive/texmf-dist/fonts/map/fontname/texfonts.map" 1577235249 3524 cb3e574dea2d1052e39280babc910dc8 ""
+  "/usr/share/texlive/texmf-dist/fonts/tfm/public/cm/cmbx12.tfm" 1136768653 1324 c910af8c371558dc20f2d7822f66fe64 ""
+  "/usr/share/texlive/texmf-dist/fonts/tfm/public/cm/cmcsc10.tfm" 1136768653 1300 63a6111ee6274895728663cf4b4e7e81 ""
+  "/usr/share/texlive/texmf-dist/fonts/tfm/public/cm/cmr17.tfm" 1136768653 1292 296a67155bdbfc32aa9c636f21e91433 ""
+  "/usr/share/texlive/texmf-dist/web2c/texmf.cnf" 1721433600 40900 887e0dc8cac988a9e9c574af364cf837 ""
+  "/var/lib/texmf/web2c/pdftex/pdflatex.fmt" 1730851523 7753163 d568c327564d95fafbd513cc7c11a648 ""
+  "auxiliary_files/coverpage.aux" 1730936322.12431 8 a94a2480d3289e625eea47cd1b285758 "pdflatex"
+  "coverpage.tex" 1730936371.41185 694 c76c5d0c5420fc5b494e6cfa5ba47909 ""
+  (generated)
+  "auxiliary_files/coverpage.aux"
+  "auxiliary_files/coverpage.log"
+  "auxiliary_files/coverpage.pdf"
+  (rewritten before read)
