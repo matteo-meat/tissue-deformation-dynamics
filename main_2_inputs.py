@@ -103,7 +103,7 @@ def pde_fn(model, sample):
     K = k * t_f
     J, d = _jacobian(model, sample)
     dX = J[0][0]
-    dY = J[1][1]
+    dY = J[0][1]
     dtau = J[0][-1]
     ddX = _jacobian(d, sample, i=0, j=0)[0][0]
     ddY = _jacobian(d, sample, i=1, j=1)[0][0]
