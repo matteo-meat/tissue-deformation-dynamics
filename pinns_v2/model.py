@@ -94,21 +94,21 @@ class MLP_RWF(nn.Module):
         return output
     
 class KAN(nn.Module): #Single layer
-    def __init__(self, in_features: int, out_features: int, grid_size: int, spline_order: int, device=None, dtype=None):
+    def __init__(self, in_features: int, out_features: int, grid_size: int, spline_order: int, grid_range, device=None, dtype=None):
         super().__init__()
         self.in_features = in_features
         self.out_features = out_features
         self.grid_size = grid_size
         self.spline_order = spline_order
-
-        initial_v_grid = -1
-        final_v_grid = 1
+        
+        initial_v_grid = grid_range[0]
+        final_v_grid = grid_range[1]
         sum_g_s = grid_size + spline_order
 
         self.w = nn.parameter.Parameter(torch.Tensor(out_features, in_features))
         self.spline_w = nn.parameter.Parameter(torch.Tensor(out_features, in_features, sum_g_s))
 
-        m = (initial_v_grid - final_v_grid)/grid_size
+        m = (final_v_grid - initial_v_grid)/grid_size
         grid = (torch.arange(-spline_order, sum_g_s + 1) * m + initial_v_grid).expand(in_features, -1).contiguous()
         self.register_buffer("grid", grid)
 
@@ -145,10 +145,48 @@ class KAN(nn.Module): #Single layer
         res = (torch.linalg.lstsq(A, B).solution).permute(2, 0, 1).contiguous()
 
         return res
-        
-class FactorizedModifiedLinear(RWF):
-    def __init__(self, in_features: int, out_features: int, bias: bool = True, device=None, dtype=None):
-        super().__init__(in_features, out_features, bias, device=device, dtype=dtype)
     
-    def forward(self, x, U , V):
-        return torch.nn.functional.linear(torch.multiply(x, U) + torch.multiply((1-x), V), self.s*self.v, self.bias)
+class KAN_NET(nn.Module):
+    def __init__(self, layers_hidden, grid_size=5,
+                    spline_order=3,
+                    scale_noise=0.1,
+                    scale_base=1.0,
+                    scale_spline=1.0,
+                    base_activation=torch.nn.SiLU,
+                    grid_eps=0.02,
+                    grid_range=[-1, 1],):
+        super(KAN_NET, self).__init__()
+        self.grid_size = grid_size
+        self.spline_order = spline_order
+
+        self.layers = torch.nn.ModuleList()
+
+        for in_features, out_features in zip(layers_hidden, layers_hidden[1:]):
+            self.layers.append(
+                KAN(
+                    in_features,
+                    out_features,
+                    grid_size=grid_size,
+                    spline_order=spline_order,
+                    scale_noise=scale_noise,
+                    scale_base=scale_base,
+                    scale_spline=scale_spline,
+                    base_activation=base_activation,
+                    grid_eps=grid_eps,
+                    grid_range=grid_range,  
+                )
+            )
+        
+        def forward(self, x: torch.Tensor, update_grid = False):
+            for layer in self.layers:
+                if update_grid:
+                    layer.update_grid(x)
+                x = layer(x)
+            return x
+        
+        # TO CHECK IF NEEDED
+        def regularization_loss(self, regularize_activation=1.0, regularize_entropy=1.0):
+            return sum(
+                layer.regularization_loss(regularize_activation, regularize_entropy)
+                for layer in self.layers
+            )
