@@ -5,55 +5,6 @@ from pinns_v2.rff import GaussianEncoding
 from collections import OrderedDict
 import math
 
-
-class ModifiedMLP(nn.Module):
-    def __init__(self, layers, activation_function, hard_constraint_fn=None, p_dropout=0.2, encoding=None) -> None:
-        super(ModifiedMLP, self).__init__()
-
-        self.layers = layers
-        self.activation = activation_function
-        self.encoding = encoding
-        if encoding != None:
-            encoding.setup(self)
-        
-        self.U = torch.nn.Sequential(nn.Linear(self.layers[0], self.layers[1]), self.activation())
-        self.V = torch.nn.Sequential(nn.Linear(self.layers[0], self.layers[1]), self.activation())
-
-        layer_list = nn.ModuleList()        
-        for i in range(0, len(self.layers)-2):
-            layer_list.append(
-                nn.Linear(layers[i], layers[i+1])
-            )
-            layer_list.append(self.activation())
-            layer_list.append(Transformer())
-            layer_list.append(nn.Dropout(p = p_dropout))
-        self.hidden_layer = layer_list
-        self.output_layer = nn.Linear(self.layers[-2], self.layers[-1])
-
-        self.hard_constraint_fn = hard_constraint_fn
-        
-
-    def forward(self, x):
-        orig_x = x
-        if self.encoding != None:
-            x = self.encoding(x)
-
-        U = self.U(orig_x)
-        V = self.V(orig_x)
-
-        output = x
-        for i in range(0, len(self.hidden_layer), 4):
-            output = self.hidden_layer[i](output) #Linear
-            output = self.hidden_layer[i+1](output) #Activation
-            output = self.hidden_layer[i+2](output, U, V) #Transformer
-            output = self.hidden_layer[i+3](output) #Dropout
-        output = self.output_layer(output)
-
-        if self.hard_constraint_fn != None:
-            output = self.hard_constraint_fn(orig_x, output)
-
-        return output
-
 class MLP(nn.Module):
     def __init__(self, layers, activation_function, hard_constraint_fn=None, p_dropout=0.2, encoding=None) -> None:
         super(MLP, self).__init__()
@@ -173,7 +124,13 @@ class KAN(nn.Module): #Single layer
         i = 1
         n = self.spline_order + 1
         for i in range(n):
-            b = ((x - grid[:, : -(i + 1)]) / (grid[:, i:-1] - grid[:, : -(i + 1)]) * b[:, :, :-1]) + ((grid[:, i + 1 :] - x) / (grid[:, i + 1 :] - grid[:, 1:(-i)]) * b[:, :, 1:])
+            b = ((x - grid[:, : -(i + 1)]) 
+                 / (grid[:, i:-1] - grid[:, : -(i + 1)]) 
+                 * b[:, :, :-1]) 
+            + (
+                (grid[:, i + 1 :] - x) 
+                / (grid[:, i + 1 :] - grid[:, 1:(-i)]) 
+                * b[:, :, 1:])
 
         res = b.contiguous()
         
@@ -195,19 +152,3 @@ class FactorizedModifiedLinear(RWF):
     
     def forward(self, x, U , V):
         return torch.nn.functional.linear(torch.multiply(x, U) + torch.multiply((1-x), V), self.s*self.v, self.bias)
-
-class Sin(nn.Module):
-  def __init__(self):
-    super(Sin, self).__init__()
-
-  def forward(self, x):
-    return torch.sin(x)
-
-
-class Transformer(nn.Module):
-    def __init__(self):
-        super(Transformer, self).__init__()
-    
-    def forward(self, x, U, V):
-        return torch.multiply(x, U) + torch.multiply(1-x, V)
-        #return torch.nn.functional.linear(torch.multiply(x, U) + torch.multiply((1-x), V), self.weight, self.bias)

@@ -58,14 +58,6 @@ def _jacobian(model, input, i=None, j=None):
             return d, None
         else:
             return d[...,i], None # se i è impostato ritorna l'i-esimo elemento della j-esima colonna
-
-
-def _hessian(model, input, i = None, j = None):
-    
-    h = hessian(model)
-    hes = vmap(h, in_dims = (0, ), randomness="different")
-    if i==None and j==None:
-        return hes(input)[..., i, j]
     
 
 

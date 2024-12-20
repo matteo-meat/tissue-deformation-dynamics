@@ -1,5 +1,5 @@
-from pinns_v2.model import MLP, MLP_RWF, ModifiedMLP
-from pinns_v2.components import ComponentManager, ResidualComponent, ICComponent, SupervisedComponent
+from pinns_v2.model import MLP, MLP_RWF
+from pinns_v2.components import ComponentManager, ResidualComponent, ICComponent
 from pinns_v2.rff import GaussianEncoding 
 import torch
 import torch.nn as nn
@@ -7,20 +7,10 @@ import torch.optim as optim
 import numpy as np
 #from pinns.train import train
 from pinns_v2.train import train
-from pinns_v2.gradient import _jacobian, _hessian
-from pinns_v2.dataset import DomainDataset, ICDataset, DomainSupervisedDataset
+from pinns_v2.gradient import _jacobian
+from pinns_v2.dataset import DomainDataset, ICDataset
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-
-
-#found optimal hyperparameters
-#lr = 0.002203836177626117, num_dense_layers = 8, num_dense_nodes = 308, activation_function = <class 'torch.nn.modules.activation.SiLU'>
-#step_lr_epochs = 1721, step_lr_gamma = 0.15913059595003437
-
-
-#with modifiedMLP found different hyperparameters (I think they are wrong):
-# l_r = 0.05, num_dense_layers = 10, num_dense_nodes = 5, activation_function = Sin>
-# epochs = 1444, step_lr_epochs = 2000, step_lr_gamma = 0.01, period = 5, dataset_size = 10000
 
 epochs = 2000
 num_inputs = 3 #x, y, t
@@ -50,13 +40,6 @@ params = {
     "f_min": f_min,
     "f_max": f_max
 }
-
-# vincoli agli estremi (to do)
-# def hard_constraint(x, y):
-#     X = x[0]
-#     tau = x[-1]
-#     U = ((X-1)*X*(delta_x**2)*t_f*tau)*(y+(u_min/delta_u)) - (u_min/delta_u)
-#     return U  
 
 def hard_constraint(x_in, U_theta):
     X = x_in[0]
@@ -159,8 +142,7 @@ scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=1721, gamma=0.1591305
 # optimizer = optim.SGD(model.parameters(), lr=0.01, momentum=0.9)
 
 data = {
-    "name": "string_2inputs_nostiffness_force_damping_ic0hard_icv0_causality_t10.0_optimized_modifiedMLP",
-    #"name": "prova",
+    "name": "PAI1.0_optimized_MLP",
     "model": model,
     "epochs": epochs,
     "batchsize": batchsize,
