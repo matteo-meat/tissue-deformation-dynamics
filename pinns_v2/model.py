@@ -141,6 +141,53 @@ class MLP_RWF(nn.Module):
             output = self.hard_constraint_fn(orig_x, output)
 
         return output
+    
+class KAN(nn.Module): #Single layer
+    def __init__(self, in_features: int, out_features: int, grid_size: int, spline_order: int, device=None, dtype=None):
+        super().__init__()
+        self.in_features = in_features
+        self.out_features = out_features
+        self.grid_size = grid_size
+        self.spline_order = spline_order
+
+        initial_v_grid = -1
+        final_v_grid = 1
+        sum_g_s = grid_size + spline_order
+
+        self.w = nn.parameter.Parameter(torch.Tensor(out_features, in_features))
+        self.spline_w = nn.parameter.Parameter(torch.Tensor(out_features, in_features, sum_g_s))
+
+        m = (initial_v_grid - final_v_grid)/grid_size
+        grid = (torch.arange(-spline_order, sum_g_s + 1) * m + initial_v_grid).expand(in_features, -1).contiguous()
+        self.register_buffer("grid", grid)
+
+        self.resert_parameter()
+
+    def spline(self, x: torch.Tensor):
+        x = x.unsqueeze(-1)
+        grid: torch.Tensor = (self.grid)
+        b1 = (x >= grid[:, :-1])
+        b2 = (x < grid[:, 1:])
+
+        b = (b1 & b2).to(x.dtype)
+        i = 1
+        n = self.spline_order + 1
+        for i in range(n):
+            b = ((x - grid[:, : -(i + 1)]) / (grid[:, i:-1] - grid[:, : -(i + 1)]) * b[:, :, :-1]) + ((grid[:, i + 1 :] - x) / (grid[:, i + 1 :] - grid[:, 1:(-i)]) * b[:, :, 1:])
+
+        res = b.contiguous()
+        
+        return res
+    
+    def curve(self, x: torch.Tensor, y: torch.Tensor):
+        k = self.spline(x)
+
+        A = k.transpose(0, 1)
+        B = y.transpose(0, 1)
+        #least squares problem solution
+        res = (torch.linalg.lstsq(A, B).solution).permute(2, 0, 1).contiguous()
+
+        return res
         
 class FactorizedModifiedLinear(RWF):
     def __init__(self, in_features: int, out_features: int, bias: bool = True, device=None, dtype=None):
