@@ -5,6 +5,7 @@ import torch
 
 class ComponentManager(Component):
     def __init__(self) -> None:
+        super().__init__(name="ComponentManager")
         self._component_list_train = []
         self._component_list_valid = []
 

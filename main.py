@@ -144,7 +144,7 @@ scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=1721, gamma=0.1591305
 # optimizer = optim.SGD(model.parameters(), lr=0.01, momentum=0.9)
 
 data = {
-    "name": "PAI1_MLP_RFW",
+    "name": 'PAI1_MLP_RFW',
     "model": model,
     "epochs": epochs,
     "batchsize": batchsize,
@@ -154,4 +154,5 @@ data = {
     "additional_data": params
 }
 
-train(data, output_to_file=False)
+train(data, output_to_file=True)
+ 
