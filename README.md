@@ -8,3 +8,6 @@
 - [Vibrations of Rectangular Membranes](https://math.libretexts.org/Bookshelves/Differential_Equations/Introduction_to_Partial_Differential_Equations_(Herman)/06%3A_Problems_in_Higher_Dimensions/6.01%3A_Vibrations_of_Rectangular_Membranes)
 - [Higher-dimensional PDEs](https://links.uwaterloo.ca/amath353docs/set8.pdf)
 - [Wave equation](https://en.wikipedia.org/wiki/Wave_equation)
+
+# Random Weight Factorization 
+- [RANDOM WEIGHT FACTORIZATION IMPROVES THE TRAINING OF CONTINUOUS NEURAL REPRESENTATIONS](https://arxiv.org/pdf/2210.01274)

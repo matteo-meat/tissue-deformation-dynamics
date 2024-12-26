@@ -104,7 +104,7 @@ def ic_fn_vel(model, sample):
 
 
 batchsize = 500
-learning_rate = 0.002203836177626117
+learning_rate = 0.01# previous value 0.002203836177626117
 
 print("Building Domain Dataset")
 domainDataset = DomainDataset([0.0]*num_inputs,[1.0]*num_inputs, 10000, period = 3)
@@ -116,7 +116,9 @@ print("Building Validation IC Dataset")
 validationicDataset = ICDataset([0.0]*(num_inputs-1),[1.0]*(num_inputs-1), 500, shuffle = False)
 
 # encoding = GaussianEncoding(sigma = 1.0, input_size=num_inputs, encoded_size=154)
-model = MLP([num_inputs] + [308]*8 + [1], nn.SiLU, hard_constraint, p_dropout=0.0)
+#model = MLP([num_inputs] + [308]*8 + [1], nn.SiLU, hard_constraint, p_dropout=0.0)
+model = MLP_RWF([num_inputs] + [308]*8 + [1], nn.SiLU, hard_constraint, p_dropout=0.0)
+
 
 component_manager = ComponentManager()
 r = ResidualComponent(pde_fn, domainDataset)
@@ -135,14 +137,14 @@ def init_normal(m):
 
 model = model.apply(init_normal)
 model = model.to(device)
-# optimizer = optim.Adam(model.parameters(), lr=learning_rate, betas = (0.9,0.99),eps = 10**-15)
-optimizer = optim.Adam(model.parameters(), lr=learning_rate)
+optimizer = optim.Adam(model.parameters(), lr=learning_rate, betas = (0.9,0.99),eps = 10**-15)
+#optimizer = optim.Adam(model.parameters(), lr=learning_rate)
 #scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, 'min', patience=20, factor=0.5)
 scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=1721, gamma=0.15913059595003437)
 # optimizer = optim.SGD(model.parameters(), lr=0.01, momentum=0.9)
 
 data = {
-    "name": "PAI1.0_optimized_MLP",
+    "name": "PAI1_MLP_RFW",
     "model": model,
     "epochs": epochs,
     "batchsize": batchsize,
