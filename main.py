@@ -1,4 +1,4 @@
-from pinns_v2.model import MLP, MLP_RWF
+from pinns_v2.model import MLP, MLP_RWF, KAN_NET
 from pinns_v2.components import ComponentManager, ResidualComponent, ICComponent
 from pinns_v2.rff import GaussianEncoding 
 import torch
@@ -116,9 +116,9 @@ print("Building Validation IC Dataset")
 validationicDataset = ICDataset([0.0]*(num_inputs-1),[1.0]*(num_inputs-1), 500, shuffle = False)
 
 # encoding = GaussianEncoding(sigma = 1.0, input_size=num_inputs, encoded_size=154)
-#model = MLP([num_inputs] + [308]*8 + [1], nn.SiLU, hard_constraint, p_dropout=0.0)
-model = MLP_RWF([num_inputs] + [308]*8 + [1], nn.SiLU, hard_constraint, p_dropout=0.0)
-
+# model = MLP([num_inputs] + [308]*8 + [1], nn.SiLU, hard_constraint, p_dropout=0.0)
+# model = MLP_RWF([num_inputs] + [308]*8 + [1], nn.SiLU, hard_constraint, p_dropout=0.0)
+model = KAN_NET([1, 1])
 
 component_manager = ComponentManager()
 r = ResidualComponent(pde_fn, domainDataset)

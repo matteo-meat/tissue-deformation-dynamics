@@ -1,5 +1,6 @@
 import torch
 import torch.nn as nn
+import torch.nn.functional as F
 import numpy as np
 from pinns_v2.rff import GaussianEncoding
 from collections import OrderedDict
@@ -124,12 +125,33 @@ class MLP_RWF(nn.Module):
         return output
     
 class KAN(nn.Module): #Single layer
-    def __init__(self, in_features: int, out_features: int, grid_size: int, spline_order: int, grid_range, device=None, dtype=None):
-        super().__init__()
+    def __init__(self,
+                 in_features: int, 
+                 out_features: int, 
+                 grid_size = 5, 
+                 spline_order = 3,
+                 scale_noise = 0.1,
+                 scale_base = 1.0,
+                 scale_spline = 1.0,
+                 enable_standalone_scale_spline = True,
+                 base_activation = torch.nn.SiLU,
+                 grid_eps = 0.02,
+                 grid_range = [-1, 1], 
+                 device=None, 
+                 dtype=None,
+                ):
+        super(KAN, self).__init__()
+
         self.in_features = in_features
         self.out_features = out_features
         self.grid_size = grid_size
         self.spline_order = spline_order
+        self.scale_noise = scale_noise
+        self.scale_base = scale_base
+        self.scale_spline = scale_spline
+        self.enable_standalone_scale_spline = enable_standalone_scale_spline
+        self.base_activation = base_activation()
+        self.grid_eps = grid_eps
         
         initial_v_grid = grid_range[0]
         final_v_grid = grid_range[1]
@@ -142,49 +164,141 @@ class KAN(nn.Module): #Single layer
         grid = (torch.arange(-spline_order, sum_g_s + 1) * m + initial_v_grid).expand(in_features, -1).contiguous()
         self.register_buffer("grid", grid)
 
-        self.resert_parameter()
+        if enable_standalone_scale_spline:
+            self.spline_scaler = torch.nn.Parameter(
+                torch.Tensor(out_features, in_features)
+            )
 
-    def spline(self, x: torch.Tensor):
+        self.reset_parameters()
+    
+    def reset_parameters(self):
+        
+        scale = math.sqrt(5) * self.scale_base
+        torch.nn.init.kaiming_uniform_(self.w, a=scale)
+
+        with torch.no_grad():
+            noise = (
+                (
+                    torch.rand(self.grid_size + 1, self.in_features, self.out_features)
+                    - 1/2
+                ) * self.scale_noise / self.grid_size
+            )
+            self.spline_w.data.copy_(
+                (self.scale_spline if not self.enable_standalone_scale_spline else 1.0)
+                * self.curve(
+                    self.grid.T[self.spline_order : -self.spline_order],
+                    noise,
+                )
+            )
+            if self.enable_standalone_scale_spline:
+                torch.nn.init.kaiming_uniform_(self.spline_scaler, a = math.sqrt(5) * self.scale_spline)
+
+    def b_splines(self, x: torch.Tensor):
+
         x = x.unsqueeze(-1)
+
         grid: torch.Tensor = (self.grid)
+
         b1 = (x >= grid[:, :-1])
         b2 = (x < grid[:, 1:])
-
         b = (b1 & b2).to(x.dtype)
-        i = 1
-        n = self.spline_order + 1
-        for i in range(n):
-            b = ((x - grid[:, : -(i + 1)]) 
-                 / (grid[:, i:-1] - grid[:, : -(i + 1)]) 
-                 * b[:, :, :-1]) 
-            + (
-                (grid[:, i + 1 :] - x) 
-                / (grid[:, i + 1 :] - grid[:, 1:(-i)]) 
-                * b[:, :, 1:])
 
-        res = b.contiguous()
+        for i in range(1, self.spline_order + 1):
+
+            left_b = ((x - grid[:, : -(i+1)]) /
+                      (grid[:, i:-1] - grid[:, : -(i+1)])) * b[:, :, :-1]
+            
+            right_b = ((grid[:, i+1 :] - x) /
+                       (grid[:, i+1 :] - grid[:, 1:-i])) * b[:, :, 1:]
+            
+            b = left_b + right_b
+
+            # b = ((x - grid[:, : -(i + 1)]) 
+            #      / (grid[:, i:-1] - grid[:, : -(i + 1)]) 
+            #      * b[:, :, :-1]) 
+            # + (
+            #     (grid[:, i + 1 :] - x) 
+            #     / (grid[:, i + 1 :] - grid[:, 1:(-i)]) 
+            #     * b[:, :, 1:])
         
-        return res
+        return b.contiguous()
     
     def curve(self, x: torch.Tensor, y: torch.Tensor):
-        k = self.spline(x)
 
-        A = k.transpose(0, 1)
+        A = self.b_splines(x).transpose(0, 1)
         B = y.transpose(0, 1)
         #least squares problem solution
         res = (torch.linalg.lstsq(A, B).solution).permute(2, 0, 1).contiguous()
 
         return res
     
+    @property
+    def scaled_spline_weight(self):
+        
+        if self.enable_standalone_scale_spline:
+            return self.spline_w * self.spline_scaler.unsqueeze(-1)
+        else:
+            return self.spline_w
+    
+    def forward(self, x: torch.Tensor):
+
+        original_shape = x.shape
+        x = x.reshape(-1, self.in_features)
+
+        base_output = F.linear(self.base_activation(x), self.w)
+
+        spline_basis = self.b_splines(x)
+        batch_size = x.size(0)
+
+        spline_basis_reshaped = spline_basis.view(batch_size, -1)
+        spline_weights_reshaped = self.scaled_spline_weight.view(self.out_features, -1)
+
+        spline_output = F.linear(
+            spline_basis_reshaped, spline_weights_reshaped
+        )
+        # spline_output = F.linear(
+        #     self.b_splines(x).view(x.size(0), -1),
+        #     self.scaled_spline_weight.view(self.out_features, -1),
+        # )
+
+        print(f"Base output shape: {base_output.shape}")
+        print(f"Spline output shape: {spline_output.shape}")
+        print(f"Original shape: {original_shape}")
+        print(f"Target shape: {(*original_shape[:-1], self.out_features)}")
+        
+        print(f"Input x shape: {x.shape}")
+        print(f"self.in_features: {self.in_features}")
+        print(f"self.out_features: {self.out_features}")
+        print(f"self.w shape: {self.w.shape}")
+        print(f"spline_w shape: {self.spline_w.shape}")
+        
+        output = (base_output + spline_output).reshape(*original_shape[:-1], self.out_features)
+
+        return output
+    
+    @torch.no_grad()
+    def update_grid(self, x: torch.Tensor, margin = 0.01):
+        # called only if update_grid = True, can skip for now
+        pass
+
+    def regularization_loss(self, regularize_activation = 1.0, regularize_entropy = 1.0):
+        # maybe we can simply do L1 regularization, we don't need
+        # this implementation
+        pass
+    
 class KAN_NET(nn.Module):
-    def __init__(self, layers_hidden, grid_size=5,
-                    spline_order=3,
-                    scale_noise=0.1,
-                    scale_base=1.0,
-                    scale_spline=1.0,
-                    base_activation=torch.nn.SiLU,
-                    grid_eps=0.02,
-                    grid_range=[-1, 1],):
+    def __init__(self,
+                 layers_hidden,
+                 grid_size=5,
+                 spline_order=3,
+                 scale_noise=0.1,
+                 scale_base=1.0,
+                 scale_spline=1.0,
+                 base_activation=torch.nn.SiLU,
+                 grid_eps=0.02,
+                 grid_range=[-1, 1],
+                ):
+        
         super(KAN_NET, self).__init__()
         self.grid_size = grid_size
         self.spline_order = spline_order
@@ -207,16 +321,18 @@ class KAN_NET(nn.Module):
                 )
             )
         
-        def forward(self, x: torch.Tensor, update_grid = False):
-            for layer in self.layers:
-                if update_grid:
-                    layer.update_grid(x)
-                x = layer(x)
-            return x
+    def forward(self, x: torch.Tensor, update_grid = False):
+        for layer in self.layers:
+            if update_grid:
+                # keep this false for now
+                layer.update_grid(x)
+            x = layer(x)
+        return x
         
-        # TO CHECK IF NEEDED
-        def regularization_loss(self, regularize_activation=1.0, regularize_entropy=1.0):
-            return sum(
-                layer.regularization_loss(regularize_activation, regularize_entropy)
-                for layer in self.layers
-            )
+    # TO CHECK IF NEEDED
+    # maybe we can simply do L1 regularization
+    def regularization_loss(self, regularize_activation=1.0, regularize_entropy=1.0):
+        return sum(
+            layer.regularization_loss(regularize_activation, regularize_entropy)
+            for layer in self.layers
+        )
