@@ -1,0 +1,4 @@
+leanrning rate = 0.002203836177626117
+m = 0.5
+It performe quite better than test 2
+

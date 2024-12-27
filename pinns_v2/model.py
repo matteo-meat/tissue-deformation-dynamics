@@ -40,7 +40,7 @@ class MLP(nn.Module):
         return output
 
 class RWF(nn.Module): #Single layer
-    def __init__(self, in_features: int, out_features: int, device=None, dtype=None, m = 1.0, sd = 0.01):
+    def __init__(self, in_features: int, out_features: int, device=None, dtype=None, m = 0.5, sd = 0.01):
         factory_kwargs = {"device": device, "dtype": dtype}
         super().__init__()
         self.in_features = in_features

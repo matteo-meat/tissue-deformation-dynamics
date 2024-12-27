@@ -104,7 +104,7 @@ def ic_fn_vel(model, sample):
 
 
 batchsize = 500
-learning_rate = 0.01# previous value 0.002203836177626117
+learning_rate = 0.002203836177626117
 
 print("Building Domain Dataset")
 domainDataset = DomainDataset([0.0]*num_inputs,[1.0]*num_inputs, 10000, period = 3)
@@ -117,7 +117,7 @@ validationicDataset = ICDataset([0.0]*(num_inputs-1),[1.0]*(num_inputs-1), 500, 
 
 # encoding = GaussianEncoding(sigma = 1.0, input_size=num_inputs, encoded_size=154)
 #model = MLP([num_inputs] + [308]*8 + [1], nn.SiLU, hard_constraint, p_dropout=0.0)
-model = MLP_RWF([num_inputs] + [308]*8 + [1], nn.SiLU, hard_constraint, p_dropout=0.0)
+model = MLP_RWF([num_inputs] + [308]*8 + [1], nn.SiLU, hard_constraint, p_dropout=0.2)
 
 
 component_manager = ComponentManager()
