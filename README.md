@@ -11,3 +11,6 @@
 
 # Random Weight Factorization 
 - [RANDOM WEIGHT FACTORIZATION IMPROVES THE TRAINING OF CONTINUOUS NEURAL REPRESENTATIONS](https://arxiv.org/pdf/2210.01274)
+
+# Early Stopping
+- [https://github.com/Bjarten/early-stopping-pytorch]

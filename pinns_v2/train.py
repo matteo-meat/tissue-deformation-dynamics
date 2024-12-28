@@ -11,9 +11,57 @@ import gc
 train_loss = []  # To store losses
 test_loss = []
 
-
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
+#If the validation loss does not improve after t -> stop training
+class EarlyStopping:
+
+    def __init__(self, t = 5, d = 0, path = 'saved_model/checkpoint.pt'):
+        #t (int): how long to wait
+        #d (float): minimum change
+        #path (str): save checkpoints in the following path
+        self.t = t
+        self.c = 0
+        self.best_v_loss = None
+        self.e_s = False
+        self.v_loss_min = np.inf
+        self.d = d
+        self.path = path
+
+    def __call__(self, v_loss, model):
+
+        if np.isnan(v_loss):
+            print("Validation loss is NaN")
+
+            return
+
+        if self.best_v_loss is None:
+            self.best_v_loss = v_loss
+            
+            #Validation loss decreases -> saves model
+            print(f'Early Stopping: reduction of validation loss')
+            torch.save(model.state_dict(), self.path)
+            
+            self.v_loss_min = v_loss
+
+        elif v_loss < self.best_v_loss - self.d:
+            #Significant improvement
+            self.best_v_loss = v_loss
+
+            #Validation loss decreases -> saves model
+            print(f'Early Stopping: reduction of validation loss')
+            torch.save(model.state_dict(), self.path)
+            self.v_loss_min = v_loss
+
+            self.c = 0
+
+        else:
+            # No significant improvement
+            self.c += 1
+            print(f'EarlyStopping: t = {self.t} and counter = {self.c}')
+            
+            if self.c >= self.t:
+                self.e_s = True
 
 def train(data, output_to_file = True):  
     name = data.get("name", "main")
@@ -66,6 +114,8 @@ def train(data, output_to_file = True):
     #for temporal causality weights
     model = model.to(device)
 
+    early_stopping = EarlyStopping(patience = 5)
+
     for epoch in range(epochs):
         model.train(True)
         train_losses = []
@@ -104,6 +154,12 @@ def train(data, output_to_file = True):
             
         
         test_loss.append(np.average(validation_losses))
+
+        #Early Stopping
+        early_stopping(np.average(validation_losses), model)
+        if early_stopping.e_s:
+            print("Early Stopping")
+            break
                 
         if output_to_file and epoch % 20 == 0:
             epoch_path = os.path.join(model_dir, f"model_{epoch}.pt")
