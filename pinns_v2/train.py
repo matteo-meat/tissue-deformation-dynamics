@@ -28,14 +28,15 @@ class EarlyStopping:
         self.d = d
         self.path = path
 
+        os.makedirs(os.path.dirname(self.path), exist_ok = True)
+
     def __call__(self, v_loss, model):
 
         if np.isnan(v_loss):
             print("Validation loss is NaN")
-
             return
 
-        if self.best_v_loss is None:
+        if self.best_v_loss is None or v_loss < self.best_v_loss - self.d:
             self.best_v_loss = v_loss
             
             #Validation loss decreases -> saves model
@@ -43,16 +44,6 @@ class EarlyStopping:
             torch.save(model.state_dict(), self.path)
             
             self.v_loss_min = v_loss
-
-        elif v_loss < self.best_v_loss - self.d:
-            #Significant improvement
-            self.best_v_loss = v_loss
-
-            #Validation loss decreases -> saves model
-            print(f'Early Stopping: reduction of validation loss')
-            torch.save(model.state_dict(), self.path)
-            self.v_loss_min = v_loss
-
             self.c = 0
 
         else:
@@ -156,10 +147,10 @@ def train(data, output_to_file = True):
         test_loss.append(np.average(validation_losses))
 
         #Early Stopping
-        # early_stopping(np.average(validation_losses), model)
-        # if early_stopping.e_s:
-        #     print("Early Stopping")
-        #     break
+        early_stopping(np.average(validation_losses), model)
+        if early_stopping.e_s:
+            print("Early Stopping")
+            break
                 
         if output_to_file and epoch % 20 == 0:
             epoch_path = os.path.join(model_dir, f"model_{epoch}.pt")
