@@ -16,7 +16,7 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 #If the validation loss does not improve after t -> stop training
 class EarlyStopping:
 
-    def __init__(self, t = 5, d = 0, path = 'saved_model/checkpoint.pt'):
+    def __init__(self, t = 50, d = 0, path = 'saved_model/checkpoint.pt'):
         #t (int): how long to wait
         #d (float): minimum change
         #path (str): save checkpoints in the following path
@@ -105,7 +105,7 @@ def train(data, output_to_file = True):
     #for temporal causality weights
     model = model.to(device)
 
-    early_stopping = EarlyStopping(t = 5)
+    early_stopping = EarlyStopping(t = 50)
 
     for epoch in range(epochs):
         model.train(True)
