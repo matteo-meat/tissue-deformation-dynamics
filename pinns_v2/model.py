@@ -295,29 +295,6 @@ class KAN_NET(nn.Module):
         self.hard_constraint_fn = hard_constraint_fn
         self.layers = nn.ModuleList()
 
-        # layer_list = list()
-        # for i in range(len(self.layers) -2):
-        #     layer_list.append(
-        #         ("layer_%d" %i, KAN(layers[i], layers[i+1]))
-        #     )
-        #     layer_list.append(('activation_%d' % i, self.activation()))
-        # layer_list.append(('layer_%d' % (len(self.layers)-1), KAN(self.layers[-2], self.layers[-1])))
-
-        # for in_features, out_features in zip(layers, layers[1:]):
-        #     self.layers.append(
-        #         KAN(
-        #             in_features,
-        #             out_features,
-        #             grid_size=grid_size,
-        #             spline_order=spline_order,
-        #             scale_noise=scale_noise,
-        #             scale_base=scale_base,
-        #             scale_spline=scale_spline,
-        #             activation_function=activation_function,
-        #             grid_eps=grid_eps,
-        #             grid_range=grid_range,  
-        #         )
-        #     )
         for i in range(len(layers)-1):
             self.layers.append(
                 KAN(
