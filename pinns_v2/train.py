@@ -114,7 +114,7 @@ def train(data, output_to_file = True):
     #for temporal causality weights
     model = model.to(device)
 
-    early_stopping = EarlyStopping(patience = 5)
+    early_stopping = EarlyStopping(t = 5)
 
     for epoch in range(epochs):
         model.train(True)
@@ -156,10 +156,10 @@ def train(data, output_to_file = True):
         test_loss.append(np.average(validation_losses))
 
         #Early Stopping
-        early_stopping(np.average(validation_losses), model)
-        if early_stopping.e_s:
-            print("Early Stopping")
-            break
+        # early_stopping(np.average(validation_losses), model)
+        # if early_stopping.e_s:
+        #     print("Early Stopping")
+        #     break
                 
         if output_to_file and epoch % 20 == 0:
             epoch_path = os.path.join(model_dir, f"model_{epoch}.pt")

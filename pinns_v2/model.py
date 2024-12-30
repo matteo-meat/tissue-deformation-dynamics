@@ -134,7 +134,7 @@ class KAN(nn.Module): #Single layer
                  scale_base = 1.0,
                  scale_spline = 1.0,
                  enable_standalone_scale_spline = True,
-                 base_activation = torch.nn.SiLU,
+                 activation_function = torch.nn.SiLU,
                  grid_eps = 0.02,
                  grid_range = [-1, 1], 
                  device=None, 
@@ -150,7 +150,7 @@ class KAN(nn.Module): #Single layer
         self.scale_base = scale_base
         self.scale_spline = scale_spline
         self.enable_standalone_scale_spline = enable_standalone_scale_spline
-        self.base_activation = base_activation()
+        self.activation_function = activation_function()
         self.grid_eps = grid_eps
         
         initial_v_grid = grid_range[0]
@@ -245,7 +245,7 @@ class KAN(nn.Module): #Single layer
         original_shape = x.shape
         x = x.reshape(-1, self.in_features)
 
-        base_output = F.linear(self.base_activation(x), self.w)
+        base_output = F.linear(self.activation_function(x), self.w)
 
         spline_basis = self.b_splines(x)
         batch_size = x.size(0)
@@ -260,17 +260,6 @@ class KAN(nn.Module): #Single layer
         #     self.b_splines(x).view(x.size(0), -1),
         #     self.scaled_spline_weight.view(self.out_features, -1),
         # )
-
-        print(f"Base output shape: {base_output.shape}")
-        print(f"Spline output shape: {spline_output.shape}")
-        print(f"Original shape: {original_shape}")
-        print(f"Target shape: {(*original_shape[:-1], self.out_features)}")
-        
-        print(f"Input x shape: {x.shape}")
-        print(f"self.in_features: {self.in_features}")
-        print(f"self.out_features: {self.out_features}")
-        print(f"self.w shape: {self.w.shape}")
-        print(f"spline_w shape: {self.spline_w.shape}")
         
         output = (base_output + spline_output).reshape(*original_shape[:-1], self.out_features)
 
@@ -288,45 +277,74 @@ class KAN(nn.Module): #Single layer
     
 class KAN_NET(nn.Module):
     def __init__(self,
-                 layers_hidden,
+                 layers,
                  grid_size=5,
                  spline_order=3,
                  scale_noise=0.1,
                  scale_base=1.0,
                  scale_spline=1.0,
-                 base_activation=torch.nn.SiLU,
+                 activation_function=torch.nn.SiLU,
+                 hard_constraint_fn = None,
                  grid_eps=0.02,
                  grid_range=[-1, 1],
                 ):
         
         super(KAN_NET, self).__init__()
-        self.grid_size = grid_size
-        self.spline_order = spline_order
 
-        self.layers = torch.nn.ModuleList()
+        self.activation_function = activation_function
+        self.hard_constraint_fn = hard_constraint_fn
+        self.layers = nn.ModuleList()
 
-        for in_features, out_features in zip(layers_hidden, layers_hidden[1:]):
+        # layer_list = list()
+        # for i in range(len(self.layers) -2):
+        #     layer_list.append(
+        #         ("layer_%d" %i, KAN(layers[i], layers[i+1]))
+        #     )
+        #     layer_list.append(('activation_%d' % i, self.activation()))
+        # layer_list.append(('layer_%d' % (len(self.layers)-1), KAN(self.layers[-2], self.layers[-1])))
+
+        # for in_features, out_features in zip(layers, layers[1:]):
+        #     self.layers.append(
+        #         KAN(
+        #             in_features,
+        #             out_features,
+        #             grid_size=grid_size,
+        #             spline_order=spline_order,
+        #             scale_noise=scale_noise,
+        #             scale_base=scale_base,
+        #             scale_spline=scale_spline,
+        #             activation_function=activation_function,
+        #             grid_eps=grid_eps,
+        #             grid_range=grid_range,  
+        #         )
+        #     )
+        for i in range(len(layers)-1):
             self.layers.append(
                 KAN(
-                    in_features,
-                    out_features,
+                    layers[i],
+                    layers[i+1],
                     grid_size=grid_size,
                     spline_order=spline_order,
                     scale_noise=scale_noise,
                     scale_base=scale_base,
                     scale_spline=scale_spline,
-                    base_activation=base_activation,
+                    activation_function=activation_function,
                     grid_eps=grid_eps,
                     grid_range=grid_range,  
                 )
             )
         
     def forward(self, x: torch.Tensor, update_grid = False):
+        orig_x = x
         for layer in self.layers:
             if update_grid:
                 # keep this false for now
                 layer.update_grid(x)
             x = layer(x)
+        
+        if self.hard_constraint_fn is not None:
+            x = self.hard_constraint_fn(orig_x, x)
+        
         return x
         
     # TO CHECK IF NEEDED

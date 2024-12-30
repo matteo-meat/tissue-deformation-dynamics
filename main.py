@@ -1,4 +1,4 @@
-from pinns_v2.model import MLP, MLP_RWF
+from pinns_v2.model import MLP, MLP_RWF, KAN_NET
 from pinns_v2.components import ComponentManager, ResidualComponent, ICComponent
 from pinns_v2.rff import GaussianEncoding 
 import torch
@@ -117,7 +117,8 @@ validationicDataset = ICDataset([0.0]*(num_inputs-1),[1.0]*(num_inputs-1), 500, 
 
 # encoding = GaussianEncoding(sigma = 1.0, input_size=num_inputs, encoded_size=154)
 #model = MLP([num_inputs] + [308]*8 + [1], nn.SiLU, hard_constraint, p_dropout=0.0)
-model = MLP_RWF([num_inputs] + [308]*8 + [1], nn.SiLU, hard_constraint, p_dropout=0.2)
+# model = MLP_RWF([num_inputs] + [308]*8 + [1], nn.SiLU, hard_constraint, p_dropout=0.2)
+model = KAN_NET([num_inputs, 50, 1], hard_constraint_fn=hard_constraint)
 
 
 component_manager = ComponentManager()
