@@ -16,40 +16,33 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 #If the validation loss does not improve after t -> stop training
 class EarlyStopping:
 
-    def __init__(self, t = 50, d = 0, path = 'saved_model/checkpoint.pt'):
+    def __init__(self, t = 5, d = 0):
         #t (int): how long to wait
         #d (float): minimum change
-        #path (str): save checkpoints in the following path
         self.t = t
         self.c = 0
         self.best_v_loss = None
         self.e_s = False
         self.v_loss_min = np.inf
         self.d = d
-        self.path = path
-
-        os.makedirs(os.path.dirname(self.path), exist_ok = True)
 
     def __call__(self, v_loss, model):
 
         if np.isnan(v_loss):
-            print("Validation loss is NaN")
+            print("Validation loss: NaN")
             return
 
-        if self.best_v_loss is None or v_loss < self.best_v_loss - self.d:
+        if self.best_v_loss is None:
             self.best_v_loss = v_loss
-            
-            #Validation loss decreases -> saves model
-            print(f'Early Stopping: reduction of validation loss')
-            torch.save(model.state_dict(), self.path)
-            
-            self.v_loss_min = v_loss
+
+        elif v_loss < self.best_v_loss - self.d:
+
+            self.best_v_loss = v_loss
             self.c = 0
 
         else:
-            # No significant improvement
+
             self.c += 1
-            print(f'EarlyStopping: t = {self.t} and counter = {self.c}')
             
             if self.c >= self.t:
                 self.e_s = True
