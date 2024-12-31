@@ -37,3 +37,12 @@ We can then say that it is possible to train a physics-based model by minimizing
 L(θ) = L_{ic}(θ) + L_{bc}(θ) + L_{r}(θ)
 
 To produce accurate and robust results we need to follow the following training pipeline mainly composed of three phases: non-sizing of PDEs, choosing suitable network architectures and employing appropriate training algorithms.
+
+## NN implementation
+
+### MLP
+
+### MLP with RWF
+
+### KAN
+

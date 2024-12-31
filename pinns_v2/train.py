@@ -16,7 +16,7 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 #If the validation loss does not improve after t -> stop training
 class EarlyStopping:
 
-    def __init__(self, t = 5, d = 0):
+    def __init__(self, t = 50, d = 0):
         #t (int): how long to wait
         #d (float): minimum change
         self.t = t
