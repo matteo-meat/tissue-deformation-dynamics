@@ -116,9 +116,9 @@ print("Building Validation IC Dataset")
 validationicDataset = ICDataset([0.0]*(num_inputs-1),[1.0]*(num_inputs-1), 500, shuffle = False)
 
 # encoding = GaussianEncoding(sigma = 1.0, input_size=num_inputs, encoded_size=154)
-#model = MLP([num_inputs] + [308]*8 + [1], nn.SiLU, hard_constraint, p_dropout=0.0)
+model = MLP([num_inputs] + [308]*8 + [1], nn.Tanh, hard_constraint, p_dropout=0.3)
 # model = MLP_RWF([num_inputs] + [308]*8 + [1], nn.SiLU, hard_constraint, p_dropout=0.2)
-model = KAN_NET([num_inputs, 50, 1], hard_constraint_fn=hard_constraint)
+#model = KAN_NET([num_inputs, 50, 1],grid_size=7, scale_noise=0.05, scale_spline=1.2, scale_base=1.5, activation_function=nn.Tanh, hard_constraint_fn=hard_constraint)
 
 
 component_manager = ComponentManager()
@@ -145,7 +145,7 @@ scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=1721, gamma=0.1591305
 # optimizer = optim.SGD(model.parameters(), lr=0.01, momentum=0.9)
 
 data = {
-    "name": 'PAI1_MLP_RFW',
+    "name": 'PAI1_MLP',
     "model": model,
     "epochs": epochs,
     "batchsize": batchsize,

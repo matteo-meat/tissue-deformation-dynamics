@@ -1,4 +1,6 @@
 leanrning rate = 0.002203836177626117
+grid_size=7,
+activation_function=nn.Tanh
 batch_size = 500
 
 

@@ -1,0 +1,5 @@
+leanrning rate = 0.01
+m = 0.5
+batch_size = 500
+It performe quite better than test 1
+
