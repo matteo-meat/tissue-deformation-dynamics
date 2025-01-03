@@ -39,10 +39,52 @@ L(θ) = L_{ic}(θ) + L_{bc}(θ) + L_{r}(θ)
 To produce accurate and robust results we need to follow the following training pipeline mainly composed of three phases: non-sizing of PDEs, choosing suitable network architectures and employing appropriate training algorithms.
 
 ## NN implementation
+This section introduces and explains the different types of neural networks used for training PINNs.
+We need to carefully choose an appropriate network architecture, as this choice affects the success of physics-based neural networks.
 
 ### MLP
+The first neural network used is the Multi-layer Perceptrons, MLP, which is used as a universal approximator to represent the latent functions of interest.
+
+The latent functions take as input the coordinates of a space-time domain and predict the corresponding target solution.
+
+A MLP is recursively defined by:
+4.1
+and has as final layer:
+4.2
+in all this we consider x belonging to R^d as input, g^{(0)}(x) = x, d_0 = d, the weight matrix in the l-th layer is defined as W^{(l)} belonging to R^{d_l × d_{l - 1}}, the activation function is sigma and theta = (W^{(1)},b^{(1)}, ..., W^{(L+1)}, b^{(L+1)}) represent the trainable parameters in the network.
+
+We know that networks should be neither narrow and shallow, as they cannot capture complex nonlinear functions, nor broad and deep, as they can be difficult to optimize.
 
 ### MLP with RWF
+The second type of network used is random weight factorization, RWF.
+
+This type of network can continuously improve the performance of PINNs.
+
+We know that MLPs are commonly trained by minimizing an appropriate loss function L(θ) via gradient descent.
+
+To improve convergence, we factorize the weight parameters associated with each neuron in the network as follows:
+RWF factors the weights associated with each neuron in the network as:
+2.3
+where w^{(k,l)} is a weight vector representing the k-th row of the weight matrix W^{(l)} belonging to R^{d_{l − 1}}, s^{(k,l)} is a trainable scaling factor assigned to each individual neuron belonging to R, and v^{(k,l)} belongs to R^{d_{l − 1}} .
+
+Then we can write the proposed weight factorization as:
+2.4 
+with s belonging to R^{d_l}.
 
 ### KAN
+We know that MLPs are inspired by the Universal Approximation Theorem, while in KANs we focus on the Kolmogorov-Arnold Representation Theorem.
 
+With some modifications we allow KANs to outperform MLPs in terms of accuracy and interpretability.
+KANs have fully connected structures, like MLPs, and we also know that MLPs have fixed activation functions on nodes, while KANs have learnable activation functions on edges and have no linear weight matrices at all. Each weight parameter is replaced by a univariate function parameterized as a spline. KAN nodes simply add the incoming signals without applying any nonlinearity.
+
+The Kolmogorov-Arnold Representation Theorem states that if f is a multivariate continuous function on a bounded domain, then f can be written as a finite composition of continuous functions of a single variable and the binary operation of addition.
+
+Considering f : [0, 1]^{n} -> R,
+2.1
+where phi_{q, p} : [0, 1] -> R and PHI_q : R -> R.
+They then proved that the only true multivariate function
+is addition.
+
+These 1D functions can be non-smooth and even fractal, so in practice they may not be learned. For this behavior the Kolmogorov-Arnold representation theorem has essentially been sentenced to death in machine learning.
+
+We can, however, deviate from the original equation and generalize the network to arbitrary widths and depths. We also know that most functions in science and everyday life are often smooth and have sparse compositional structures, which potentially facilitates smooth Kolmogorov-Arnold representations.
