@@ -102,8 +102,10 @@ def ic_fn_vel(model, sample):
     ics = torch.zeros_like(dt)
     return dt, ics
 
-# SETUP 1: batchsize = 500, lr = 0.002203836177626117
 batchsize = 500
+
+# SETUP 1: batchsize = 500, lr = 0.002203836177626117
+
 learning_rate = 0.002203836177626117
 
 print("Building Domain Dataset")

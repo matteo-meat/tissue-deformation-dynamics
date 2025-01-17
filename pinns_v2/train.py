@@ -122,11 +122,12 @@ def train(data, output_to_file = True):
         epoch_val_loss = np.average(validation_losses)
         test_loss.append(epoch_val_loss)
         
-        if epoch % 50 == 0:
-            print(f"Epoch nr. {epoch}, avg train loss: {epoch_train_loss}, avg validation loss: {epoch_val_loss}")
-            if output_to_file:
-                epoch_path = os.path.join(model_dir, f"model_{epoch}.pt")
-                torch.save(model, epoch_path)
+
+        print(f"Epoch nr. {epoch}, avg train loss: {epoch_train_loss}, avg validation loss: {epoch_val_loss}")
+        
+        if output_to_file and epoch % 25 == 0:
+            epoch_path = os.path.join(model_dir, f"model_{epoch}.pt")
+            torch.save(model, epoch_path)
         
         if scheduler != None:
             scheduler.step()
@@ -170,7 +171,7 @@ def train(data, output_to_file = True):
         plt.xlabel('Iterations')
         plt.ylabel('Loss')
         plt.title('Training Losses')
-        plt.savefig(f'{train_dir}/train_losses.png')
+        plt.savefig(f'{train_dir}/res_ic_train_losses.png')
         plt.show()
 
     return np.min(test_loss)
