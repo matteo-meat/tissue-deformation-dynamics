@@ -73,9 +73,6 @@ def train(data, output_to_file = True):
         model_dir = os.path.join(train_dir, "model")
         if not os.path.exists(model_dir):
             os.makedirs(model_dir)
-            
-
-        model_path = os.path.join(model_dir, f"model.pt")
 
         params_path = f"{train_dir}/params.json"
         params = {
@@ -134,14 +131,17 @@ def train(data, output_to_file = True):
         if scheduler != None:
             scheduler.step()
 
+        torch.cuda.empty_cache()
+
         #Early Stopping
         early_stopping(epoch_val_loss, model)
         if early_stopping.e_s:
             print("Early Stopping")
             break
 
-        torch.cuda.empty_cache()
-    
+    print(f"Finished training! Avg train loss: {np.average(train_loss)}; Avg val loss: {np.average(test_loss)}")
+    model_path = os.path.join(model_dir, f"model_{epoch}.pt")
+
     # Save the model
     if output_to_file:
         torch.save(model, model_path)
