@@ -88,3 +88,20 @@ is addition.
 These 1D functions can be non-smooth and even fractal, so in practice they may not be learned. For this behavior the Kolmogorov-Arnold representation theorem has essentially been sentenced to death in machine learning.
 
 We can, however, deviate from the original equation and generalize the network to arbitrary widths and depths. We also know that most functions in science and everyday life are often smooth and have sparse compositional structures, which potentially facilitates smooth Kolmogorov-Arnold representations.
+
+### Analysis: MLP with RWF
+The second model whose training we will analyze is MLP with Random Weight Factorization.
+
+We wanted to reuse the same learning rate and batch size parameters used for the MLP trainings, in order to be able to compare the results obtained. We also ran the trainings with the same activation functions tested in the first model.
+
+For the trainings where we used learning_rate = 0.002203836177626117 and batchsize = 500 we obtained:
+
+Avg train loss: 12151.300893020629; Avg val loss: 6810.801324252425 with the Tanh activation function, Avg train loss: 100505.3612638461; Average val loss: 6643.876216661061 with ReLU activation function and finally Average train loss: 93402.89770152498; Average val loss: 8460.147160775321 with SiLU activation function.
+
+These are the best values ​​obtained for the average of the loss validation for each previous activation function: for the first one at epoch number 65 we have avg validation loss: 4225.283203125, for the second one at epoch number 251 we have avg validation loss: 557.2007446289062 and for the SiLU at epoch number 89 we have avg validation loss: 268.5632629394531.
+
+For the trainings where we used learning_rate = 0.001 and batchsize = None we got:
+
+Mean train loss: 125946.73594916044; Mean val loss: 38291.67793114506 with Tanh activation function, Mean train loss: 2724211.885513117; Mean val loss: 342154.02136381174 with ReLU activation function and finally Mean train loss: 569026.4964409722; Mean value loss: 27070.49837782118 with SiLU activation function.
+
+Also in this second case we are going to observe the best values ​​obtained for the average of the validation loss for each activation function used: for the first one at epoch number 16 avg validation loss: 5147.599609375, for the ReLU at epoch number 30 avg validation loss: 23163.8359375 and for the last activation function we have at epoch number 39 avg validation loss: 5063.10498046875.
