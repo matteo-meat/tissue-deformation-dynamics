@@ -47,31 +47,7 @@ class RWF(nn.Module): #Single layer
         self.in_features = in_features
         self.out_features = out_features
         shape = (out_features, in_features)
-        """""
-        - Delete the storing of w, s and v which is redundant, this allow to save memeory, 
-        - Change the initialization of s from in_feature to out_feature dimention because s represent 
-        the scale factor for each neuron in the layer so it should be aligned with the number of output, also considering that
-        in the equation 2.3, of the paper added on the readme, about the random weight factorization s should be a 1D vector 
-        and it must be represented as diag(s^l) where l are the index of the input feature. So at the end if the rows of v are the 
-        output neurons weight, s should moltiply each rows of v and for this reason should be of dimention [out_feature, 1] which 
-        is the same thing, if we follow the paper strictly, of transform s as a diagonal matrix with zeros everywhere exept in 
-        the diagonal, but I implemented the first approach (less multiplication).
-        - Solved the problem of loss = NaN by inizializating b with zeros
-        - Adding normalization of v to ensure stability. Also the paper enforce the separation between s and v, the first
-        to control the magnitude and the second the directionality of the vector, so v should be normilized
-        otherwise s is not fully control the magnitude
-        - I found in the paper that they used different value of m and sd, using m = 1 for the Normal distribution mean 
-        when passing on the exponential (the expected value) gives e^1 = 2.71 so initially v are smaller than the initial w so 
-        larger update becouse the scaling factors are close to 2.71. So what I found is that the grater is m the larger is the 
-        scaling factor and the update during training. It is interesting try different m around 1, I see in the paper (table 4) 
-        that m = 2 is used for image regression which needs to scale the pixel more aggressively maybe? and for the Navier-Stokes
-        use m = 0.5, maybe needs more precision initial condition and a less aggressive update approach.
-        Of course this should be confirmed and It is interesting put this reasonings in the report aslo trying training with different 
-        m values.
-
-        """""
-
-
+        
         w = nn.init.xavier_normal_(torch.empty(shape, **factory_kwargs)) #we give a uninitialized tensor and use Xavier normal distribution to fill in_features (Glorot initialization)
         s = torch.randn(out_features)*sd + m #tensor with random numbers from a normal distribution with mean 'm' and standard deviation 'sd'
         s = torch.exp(s)
