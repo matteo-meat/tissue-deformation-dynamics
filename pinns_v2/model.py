@@ -246,10 +246,63 @@ class KAN(nn.Module): #Single layer
         # called only if update_grid = True, can skip for now
         pass
 
-    def regularization_loss(self, regularize_activation = 1.0, regularize_entropy = 1.0):
-        # maybe we can simply do L1 regularization, we don't need
-        # this implementation
-        pass
+    def regularization_loss(self, regularize_activation=1.0, regularize_entropy=1.0, use_original=False):
+        """
+        Compute regularization loss with two options:
+        1) No regularization (return 0)
+        2) Simplified L1 regularization with entropy term
+        
+        Args:
+            regularize_activation (float): Weight for L1 regularization term
+            regularize_entropy (float): Weight for entropy regularization term
+            use_original (bool): If True, use original paper's regularization. If False, use simplified version.
+        """
+        if not use_original:  # Simplified L1 regularization
+            if regularize_activation == 0 and regularize_entropy == 0:
+                return torch.tensor(0.0, device=self.w.device)
+                
+            # Get the absolute mean of spline weights across the last dimension
+            l1_fake = self.scaled_spline_weight.abs().mean(-1)  # Shape: [out_features, in_features]
+            
+            # Calculate L1 regularization as sum of absolute means
+            regularization_loss_activation = l1_fake.sum()
+            
+            # Calculate probability distribution for entropy
+            p = l1_fake / (regularization_loss_activation + 1e-8)  # Add small epsilon to avoid log(0)
+            
+            # Calculate entropy term
+            regularization_loss_entropy = -torch.sum(p * torch.log(p + 1e-8))
+            
+            return (
+                regularize_activation * regularization_loss_activation
+                + regularize_entropy * regularization_loss_entropy
+            )
+        else:  # Original paper implementation
+            batch_size = 500  # Can be adjusted based on memory constraints
+            x = torch.linspace(self.grid[0, 0], self.grid[0, -1], batch_size).to(self.w.device)
+            
+            # Compute B-spline basis for sample points
+            spline_basis = self.b_splines(x)  # Shape: [batch_size, in_features, grid_size + spline_order]
+            
+            # Compute activations for each input-output pair
+            activations = []
+            for i in range(self.in_features):
+                for j in range(self.out_features):
+                    # Get activation values for this input-output pair
+                    act = torch.matmul(spline_basis[:, i, :], self.scaled_spline_weight[j, i, :])
+                    activations.append(act)
+            
+            activations = torch.stack(activations, dim=1)  # [batch_size, in_features * out_features]
+            
+            # Compute L1 norm (average magnitude over samples)
+            l1_norms = torch.mean(torch.abs(activations), dim=0)  # [in_features * out_features]
+            l1_total = l1_norms.sum()
+            
+            # Compute entropy term
+            p = l1_norms / (l1_total + 1e-8)
+            entropy = -torch.sum(p * torch.log(p + 1e-8))
+            
+            return regularize_activation * l1_total + regularize_entropy * entropy
     
 class KAN_NET(nn.Module):
     def __init__(self,
@@ -302,8 +355,8 @@ class KAN_NET(nn.Module):
         
     # TO CHECK IF NEEDED
     # maybe we can simply do L1 regularization
-    def regularization_loss(self, regularize_activation=1.0, regularize_entropy=1.0):
+    def regularization_loss(self, regularize_activation=1.0, regularize_entropy=1.0, use_original=False):
         return sum(
-            layer.regularization_loss(regularize_activation, regularize_entropy)
+            layer.regularization_loss(regularize_activation, regularize_entropy, use_original)
             for layer in self.layers
         )

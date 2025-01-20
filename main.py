@@ -143,7 +143,6 @@ model = MLP([num_inputs] + [308]*8 + [1], nn.SiLU, hard_constraint, p_dropout=0.
 
 #model = KAN_NET([num_inputs, 50, 1],grid_size=7, scale_noise=0.05, scale_spline=1.2, scale_base=1.5, activation_function=nn.Tanh, hard_constraint_fn=hard_constraint)
 
-
 component_manager = ComponentManager()
 r = ResidualComponent(pde_fn, domainDataset)
 component_manager.add_train_component(r)

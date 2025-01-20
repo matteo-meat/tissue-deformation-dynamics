@@ -101,6 +101,15 @@ def train(data, output_to_file = True):
         train_losses = []
         for i in range(component_manager.number_of_iterations(train = True)):
             l = component_manager.apply(model, train = True)
+
+            # No regularization
+            reg_loss = model.regularization_loss(regularize_activation=0.0, regularize_entropy=0.0, use_original=False)
+            # Efficient L1 regularization
+            # reg_loss = model.regularization_loss(regularize_activation=1.0, regularize_entropy=1.0, use_original=False)
+            # # Paper L1 regularization
+            # reg_loss = model.regularization_loss(regularize_activation=1.0, regularize_entropy=1.0, use_original=True)
+            
+            total_loss = l + reg_loss
             l.backward()    
             optimizer.step() 
             optimizer.zero_grad()
