@@ -46,7 +46,7 @@ tlist = linspace(0,tF,n);
 resultsFile = 'pde_results.mat';
 
 if isfile(resultsFile)
-    % Load results from file
+    % Load results from file to avoid solving the pde every time
     disp('Loading results from file...');
     load(resultsFile, 'result', 'tlist', 'u');
 else
@@ -65,6 +65,10 @@ end
 figure
 umax = max(max(u));
 umin = min(min(u));
+
+gifFilename = 'membrane_oscillation.gif'; % Name of the GIF file
+frameDelay = 0.1; % Delay between frames in seconds
+
 disp("Starting for loop")
 for i = 1:n
     pdeplot(model,"XYData",u(:,i),"ZData",u(:,i), ...
@@ -75,11 +79,23 @@ for i = 1:n
     zlabel('u')
     title(sprintf('Time: %.2f s', tlist(i)))
     colorbar
-    M(i) = getframe;
-end
 
-% Play animation
-movie(M)
+    % Capture the current frame
+    drawnow;
+    frame = getframe(gcf);
+    img = frame2im(frame);
+    [imind, cm] = rgb2ind(img, 256);
+    
+    % Write to the GIF file
+    if i == 1
+        imwrite(imind, cm, gifFilename, 'gif', 'Loopcount', inf, 'DelayTime', frameDelay);
+    else
+        imwrite(imind, cm, gifFilename, 'gif', 'WriteMode', 'append', 'DelayTime', frameDelay);
+    end
+
+    M(i) = frame;
+
+end
 
 % Calculate the maximum displacement at each time step
 maxDisplacement = max(abs(u), [], 1);
@@ -112,9 +128,3 @@ function f = externalForce(location,~)
     h = -3.0; % Minimum force value from Python
     f = h * exp(-400 * ((x - x_f).^2 + (y - y_f).^2));
 end
-
-% Optional: Save animation
-% v = VideoWriter('membrane_oscillation.avi');
-% open(v);
-% writeVideo(v,M);
-% close(v);
