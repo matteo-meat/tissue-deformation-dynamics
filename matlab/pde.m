@@ -5,16 +5,16 @@ k = 1;    % Damping coefficient
 
 numberOfPDE = 1;
 model = createpde(numberOfPDE);
-geometryFromEdges(model,@squareg);
+
+S = [3, 4, 0, 1, 1, 0, 1, 1, 0, 0]';
+g = decsg(S);
+geometryFromEdges(model,g);
 
 % % Plot geometry
-% pdegplot(model,"EdgeLabels","on");
-% ylim([-.1 1.1]);
-% xlim([-.1 1.1]);
-% axis equal
-% title("Square Membrane Geometry With Edge Labels")
-% xlabel("x")
-% ylabel("y")
+pdegplot(model,"EdgeLabels","on");
+title("Square Membrane Geometry With Edge Labels")
+xlabel("x")
+ylabel("y")
 
 % Specify PDE coefficients for wave equation
 % mu*∂²u/∂t² + k*∂u/∂t - T*∇²u = f
@@ -27,9 +27,6 @@ applyBoundaryCondition(model,"dirichlet","Edge",[1,2,3,4],"u",0);
 mesh = generateMesh(model,'Hmax',0.02);
 figure
 pdemesh(model);
-ylim([-.1 1.1]);
-xlim([-.1 1.1]);
-axis equal
 xlabel('x')
 ylabel('y')
 title('Mesh Visualization')
@@ -73,7 +70,7 @@ disp("Starting for loop")
 for i = 1:n
     pdeplot(model,"XYData",u(:,i),"ZData",u(:,i), ...
         "ZStyle","continuous","Mesh","off");
-    axis([0 1 0 1 umin umax]);  % Set axis to match domain [0,1]x[0,1]
+    zlim([umin umax]);
     xlabel('x')
     ylabel('y')
     zlabel('u')
