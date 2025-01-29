@@ -25,11 +25,11 @@ applyBoundaryCondition(model,"dirichlet","Edge",[1,2,3,4],"u",0);
 
 % Generate mesh
 mesh = generateMesh(model,'Hmax',0.02);
-figure
-pdemesh(model);
-xlabel('x')
-ylabel('y')
-title('Mesh Visualization')
+% figure
+% pdemesh(model);
+% xlabel('x')
+% ylabel('y')
+% title('Mesh Visualization')
 
 % Set initial conditions (zero displacement and velocity as in Python)
 setInitialConditions(model,0,0);
@@ -94,6 +94,9 @@ for i = 1:n
 
 end
 
+% copy M to use later with movie
+movie_no_damp = M;
+
 % Calculate the maximum displacement at each time step
 maxDisplacement = max(abs(u), [], 1);
 
@@ -107,6 +110,7 @@ xlabel('Time (s)');
 ylabel('Maximum Displacement');
 title('Maximum Displacement Over Time');
 grid on;
+savefig('displ_no_damp.fig')
 
 % Plot the L2 norm over time
 figure;
@@ -115,6 +119,7 @@ xlabel('Time (s)');
 ylabel('L2 Norm of Displacement');
 title('L2 Norm of Displacement Over Time');
 grid on;
+savefig('l2_no_damp.fig')
 
 % Specify PDE coefficients for wave equation with damping
 fem = assembleFEMatrices(model);
@@ -177,6 +182,9 @@ for i = 1:n
 
 end
 
+% copy M to use later with movie
+movie_with_damp = M;
+
 % Calculate the maximum displacement at each time step
 maxDisplacement = max(abs(u), [], 1);
 
@@ -190,6 +198,7 @@ xlabel('Time (s)');
 ylabel('Maximum Displacement');
 title('Maximum Displacement Over Time');
 grid on;
+savefig('displ_with_damp.fig')
 
 % Plot the L2 norm over time
 figure;
@@ -198,6 +207,7 @@ xlabel('Time (s)');
 ylabel('L2 Norm of Displacement');
 title('L2 Norm of Displacement Over Time');
 grid on;
+savefig('l2_with_damp.fig')
 
 % External force function (Gaussian as in Python)
 function f = externalForce(location,~)
