@@ -116,6 +116,89 @@ ylabel('L2 Norm of Displacement');
 title('L2 Norm of Displacement Over Time');
 grid on;
 
+% Specify PDE coefficients for wave equation with damping
+fem = assembleFEMatrices(model);
+d = 1*fem.M + 0*fem.K;
+
+specifyCoefficients(model,"m",mu,"d",d,"c",T,"a",k,"f",@externalForce);
+
+% File to save/load results
+resultsFile = 'pde_results_with_damping.mat';
+
+if isfile(resultsFile)
+    % Load results from file to avoid solving the pde every time
+    disp('Loading results from file with damping...');
+    load(resultsFile, 'result', 'tlist', 'u');
+else
+    % Solve PDE and save results
+    model.SolverOptions.ReportStatistics = 'on';
+    disp('Solving PDE with damping...');
+    result = solvepde(model, tlist);
+    u = result.NodalSolution;
+
+    % Save results to file
+    save(resultsFile, 'result', 'tlist', 'u');
+    disp('Results with damping saved to file.');
+end
+
+% Create animation
+figure
+umax = max(max(u));
+umin = min(min(u));
+
+gifFilename = 'membrane_oscillation_with_damping.gif'; % Name of the GIF file
+frameDelay = 0.1; % Delay between frames in seconds
+
+disp("Starting for loop")
+for i = 1:n
+    pdeplot(model,"XYData",u(:,i),"ZData",u(:,i), ...
+        "ZStyle","continuous","Mesh","off");
+    zlim([umin umax]);
+    xlabel('x')
+    ylabel('y')
+    zlabel('u')
+    title(sprintf('Time: %.2f s', tlist(i)))
+    colorbar
+
+    % Capture the current frame
+    drawnow;
+    frame = getframe(gcf);
+    img = frame2im(frame);
+    [imind, cm] = rgb2ind(img, 256);
+    
+    % Write to the GIF file
+    if i == 1
+        imwrite(imind, cm, gifFilename, 'gif', 'Loopcount', inf, 'DelayTime', frameDelay);
+    else
+        imwrite(imind, cm, gifFilename, 'gif', 'WriteMode', 'append', 'DelayTime', frameDelay);
+    end
+
+    M(i) = frame;
+
+end
+
+% Calculate the maximum displacement at each time step
+maxDisplacement = max(abs(u), [], 1);
+
+% Calculate the L2 norm of the displacement at each time step
+l2Norm = sqrt(sum(u.^2, 1));
+
+% Plot the maximum displacement over time
+figure;
+plot(tlist, maxDisplacement, 'r', 'LineWidth', 2);
+xlabel('Time (s)');
+ylabel('Maximum Displacement');
+title('Maximum Displacement Over Time');
+grid on;
+
+% Plot the L2 norm over time
+figure;
+plot(tlist, l2Norm, 'b', 'LineWidth', 2);
+xlabel('Time (s)');
+ylabel('L2 Norm of Displacement');
+title('L2 Norm of Displacement Over Time');
+grid on;
+
 % External force function (Gaussian as in Python)
 function f = externalForce(location,~)
     x = location.x;
