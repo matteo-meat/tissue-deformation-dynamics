@@ -1,6 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import torch
+import pandas as pd
 from animation import comprehensive_analysis
 
 # Global parameters
@@ -41,135 +42,195 @@ def hard_constraint(x_in, U_theta):
     return U
 
 def get_pinn_predictions(model, X_norm, Y_norm, T_norm):
-    inputs = torch.tensor(np.stack([X_norm.flatten(), Y_norm.flatten(), T_norm.flatten()], axis=1),
-                         dtype=torch.float32)
-    print(f"Inputs shape: {inputs.shape}")  # Debug: Check input shape
+    inputs = torch.tensor(np.column_stack([X_norm, Y_norm, T_norm]), dtype=torch.float32)
+    print(f"Inputs shape: {inputs.shape}")
+    
+    # Let's first check what the model outputs directly
+    with torch.no_grad():
+        raw_predictions = model(inputs)
+        if raw_predictions.shape[1] > 1:
+            raw_predictions = raw_predictions[:, 0]
+        print(f"Raw model predictions - min: {raw_predictions.min()}, max: {raw_predictions.max()}, mean: {raw_predictions.mean()}")
     
     predictions = []
-    batch_size = 50000
-    with torch.no_grad():
-        for i in range(0, len(inputs), batch_size):
-            batch = inputs[i:i+batch_size]
-            pred = model(batch)
-            if pred.shape[1] > 1:
-                pred = pred[:, 0]
-            print(f"Batch {i // batch_size}: predictions shape = {pred.shape}")  # Debug: Check batch output shape
-            predictions.append(pred.numpy())
+    # Let's test with just a few points first
+    test_indices = [0, len(inputs)//2, -1]  # Beginning, middle, and end points
     
-    predictions = np.concatenate(predictions)
-    print(f"Final predictions size: {predictions.size}, Expected size: {X_norm.size}")  # Debug: Check final size
-    return predictions
+    for idx in test_indices:
+        x_in = [X_norm[idx], Y_norm[idx], T_norm[idx]]
+        pred = raw_predictions[idx].item()
+        print(f"\nTesting point {idx}:")
+        print(f"Input coordinates (normalized): {x_in}")
+        print(f"Raw model prediction: {pred}")
+        constrained_pred = hard_constraint(x_in, pred)
+        predictions.append(constrained_pred)
+        
+    print("\nTest predictions:", predictions)
+    
+    # Now process all points
+    all_predictions = []
+    for i in range(len(inputs)):
+        x_in = [X_norm[i], Y_norm[i], T_norm[i]]
+        pred = raw_predictions[i].item()
+        constrained_pred = hard_constraint(x_in, pred)
+        all_predictions.append(constrained_pred)
+    
+    return np.array(all_predictions)
+# def get_pinn_predictions(model, X_norm, Y_norm, T_norm):
+#     # Stack the coordinates into a single input tensor
+#     inputs = torch.tensor(np.column_stack([X_norm, Y_norm, T_norm]), dtype=torch.float32)
+#     print(f"Inputs shape: {inputs.shape}")
+    
+#     predictions = []
+#     batch_size = 50000
+    
+#     with torch.no_grad():
+#         for i in range(0, len(inputs), batch_size):
+#             batch = inputs[i:i+batch_size]
+#             pred = model(batch)
+#             if pred.shape[1] > 1:
+#                 pred = pred[:, 0]
+#             print(f"Batch {i // batch_size}: predictions shape = {pred.shape}")
+#             predictions.append(pred.numpy())
+    
+#     predictions = np.concatenate(predictions)
+#     print(f"Final predictions size: {predictions.size}")
+#     return predictions
 
 
-def compute_numerical_solution(Nx, Ny, Nt, x, y, t):
-    print("Computing numerical solution...")
-    u_numerical = np.zeros((Nx, Ny, Nt))
+# def compute_numerical_solution(Nx, Ny, Nt, x, y, t):
+#     print("Computing numerical solution...")
+#     u_numerical = np.zeros((Nx, Ny, Nt))
     
-    T = 1.0
-    mu = 1.0
-    k = 1.0
-    c = np.sqrt(T / mu)
+#     T = 1.0
+#     mu = 1.0
+#     k = 1.0
+#     c = np.sqrt(T / mu)
     
-    dx = x[1] - x[0]
-    dy = y[1] - y[0]
-    dt = t[1] - t[0]
+#     dx = x[1] - x[0]
+#     dy = y[1] - y[0]
+#     dt = t[1] - t[0]
     
-    x_f, y_f = 0.2, 0.2
-    h = f_min
-    force_spread = 400
-    X, Y = np.meshgrid(x, y)
-    F = h * np.exp(-force_spread * ((X - x_f)**2 + (Y - y_f)**2))
+#     x_f, y_f = 0.2, 0.2
+#     h = f_min
+#     force_spread = 400
+#     X, Y = np.meshgrid(x, y)
+#     F = h * np.exp(-force_spread * ((X - x_f)**2 + (Y - y_f)**2))
     
-    u = np.zeros((3, Nx, Ny))
+#     u = np.zeros((3, Nx, Ny))
     
-    for n in range(Nt):
-        u_numerical[:, :, n] = u[1]
+#     for n in range(Nt):
+#         u_numerical[:, :, n] = u[1]
         
-        u[2, 1:-1, 1:-1] = (
-            2 * u[1, 1:-1, 1:-1] * (1 - k*dt/2) 
-            - u[0, 1:-1, 1:-1] * (1 - k*dt/2)
-            + (c * dt)**2 * (
-                (u[1, 2:, 1:-1] - 2*u[1, 1:-1, 1:-1] + u[1, :-2, 1:-1]) / dx**2 +
-                (u[1, 1:-1, 2:] - 2*u[1, 1:-1, 1:-1] + u[1, 1:-1, :-2]) / dy**2
-            )
-            + dt**2 * F[1:-1, 1:-1]
-        ) / (1 + k*dt/2)
+#         u[2, 1:-1, 1:-1] = (
+#             2 * u[1, 1:-1, 1:-1] * (1 - k*dt/2) 
+#             - u[0, 1:-1, 1:-1] * (1 - k*dt/2)
+#             + (c * dt)**2 * (
+#                 (u[1, 2:, 1:-1] - 2*u[1, 1:-1, 1:-1] + u[1, :-2, 1:-1]) / dx**2 +
+#                 (u[1, 1:-1, 2:] - 2*u[1, 1:-1, 1:-1] + u[1, 1:-1, :-2]) / dy**2
+#             )
+#             + dt**2 * F[1:-1, 1:-1]
+#         ) / (1 + k*dt/2)
         
-        u[2, 0, :] = u[2, -1, :] = u[2, :, 0] = u[2, :, -1] = 0
+#         u[2, 0, :] = u[2, -1, :] = u[2, :, 0] = u[2, :, -1] = 0
         
-        u[0] = u[1].copy()
-        u[1] = u[2].copy()
+#         u[0] = u[1].copy()
+#         u[1] = u[2].copy()
         
-    return u_numerical
+#     return u_numerical
 
-def visualize_comparison(u_pinn, u_numerical, X, Y, t, times_to_plot):
-    print("Creating visualization...")
-    fig = plt.figure(figsize=(15, 10))
+# def visualize_comparison(u_pinn, u_numerical, X, Y, t, times_to_plot):
+#     print("Creating visualization...")
+#     fig = plt.figure(figsize=(15, 10))
     
-    for idx, t_idx in enumerate(times_to_plot):
-        current_time = t[t_idx]
+#     for idx, t_idx in enumerate(times_to_plot):
+#         current_time = t[t_idx]
         
-        ax1 = fig.add_subplot(2, len(times_to_plot), idx+1, projection='3d')
-        ax1.plot_surface(X[:, :, 0], Y[:, :, 0], u_pinn[:, :, t_idx], cmap='seismic')
-        ax1.set_title(f'PINN t={current_time:.2f}s')
-        ax1.set_zlim(u_min, u_max)
-        ax1.set_xlabel('x (m)')
-        ax1.set_ylabel('y (m)')
-        ax1.set_zlabel('Displacement (m)')
+#         ax1 = fig.add_subplot(2, len(times_to_plot), idx+1, projection='3d')
+#         ax1.plot_surface(X[:, :, 0], Y[:, :, 0], u_pinn[:, :, t_idx], cmap='seismic')
+#         ax1.set_title(f'PINN t={current_time:.2f}s')
+#         ax1.set_zlim(u_min, u_max)
+#         ax1.set_xlabel('x (m)')
+#         ax1.set_ylabel('y (m)')
+#         ax1.set_zlabel('Displacement (m)')
         
-        ax2 = fig.add_subplot(2, len(times_to_plot), len(times_to_plot) + idx + 1, projection='3d')
-        ax2.plot_surface(X[:, :, 0], Y[:, :, 0], u_numerical[:, :, t_idx], cmap='seismic')
-        ax2.set_title(f'Numerical t={current_time:.2f}s')
-        ax2.set_zlim(u_min, u_max)
-        ax2.set_xlabel('x (m)')
-        ax2.set_ylabel('y (m)')
-        ax2.set_zlabel('Displacement (m)')
+#         ax2 = fig.add_subplot(2, len(times_to_plot), len(times_to_plot) + idx + 1, projection='3d')
+#         ax2.plot_surface(X[:, :, 0], Y[:, :, 0], u_numerical[:, :, t_idx], cmap='seismic')
+#         ax2.set_title(f'Numerical t={current_time:.2f}s')
+#         ax2.set_zlim(u_min, u_max)
+#         ax2.set_xlabel('x (m)')
+#         ax2.set_ylabel('y (m)')
+#         ax2.set_zlabel('Displacement (m)')
     
-    plt.tight_layout()
-    plt.show()
+#     plt.tight_layout()
+#     plt.show()
+
+def save_predictions(predictions, X, Y, T, filename='predictions.csv'):
+    """
+    Save predictions along with their coordinates to a CSV file.
+    
+    Args:
+        predictions: numpy array of predicted values
+        X: x-coordinates
+        Y: y-coordinates
+        T: time values
+        filename: output CSV filename
+    """
+    # Create a DataFrame with all the data
+    results_df = pd.DataFrame({
+        'x': X,
+        'y': Y,
+        't': T,
+        'prediction': predictions
+    })
+    
+    # Save to CSV
+    results_df.to_csv(filename, index=False)
+    print(f"Results saved to {filename}")
+    
+    # Also save as NPZ file for backup
+    np.savez('predictions.npz', 
+             predictions=predictions,
+             x=X,
+             y=Y,
+             t=T)
+    print(f"Results also saved to predictions.npz")
 
 def main():
     model_path = '/Users/francesco/Desktop/PAI1/training/KAN_2/model/model_324.pt'
+    csv_path = 'matlab/only_damp/space_time_points.csv'
+    
+    # Read the CSV file
+    df = pd.read_csv(csv_path)
+    
+    # Convert pandas Series to numpy arrays
+    X = df['x'].to_numpy()
+    Y = df['y'].to_numpy()
+    T = df['t'].to_numpy()
 
-    Nx, Ny = 50, 50
-    Nt = 1000
-    
-    x = np.linspace(x_min, x_max, Nx)
-    y = np.linspace(y_min, y_max, Ny)
-    t = np.linspace(0, t_f, Nt)
-    X, Y, T = np.meshgrid(x, y, t, indexing='ij')
-    
+    # Normalize the coordinates
     X_norm = (X - x_min) / (x_max - x_min)
     Y_norm = (Y - y_min) / (y_max - y_min)
     T_norm = T / t_f
     
+    # Load the model
     model = load_model(model_path)
+    
+    # Get predictions with hard constraint applied
     predictions = get_pinn_predictions(model, X_norm, Y_norm, T_norm)
     
-    if predictions.size == Nx * Ny * Nt:
-        u_pinn = predictions.reshape(Nx, Ny, Nt)
-    else:
-        raise ValueError(f"Predictions size {predictions.size} does not match expected size {Nx * Ny * Nt}")
-
-    u_pinn = predictions * (u_max - u_min) + u_min
-    u_pinn = u_pinn.reshape(Nx, Ny, Nt)
+    # Note: Don't denormalize here since hard_constraint already handles that
+    # The predictions are already in the correct range
     
-    u_numerical = compute_numerical_solution(Nx, Ny, Nt, x, y, t)
+    # Save the results
+    save_predictions(predictions, X, Y, T, 'matlab/only_damp/pinn_predictions.csv')
     
-    comprehensive_analysis(u_pinn, u_numerical, X, Y, t, save_animation=True)
-    # times_to_plot = [0, int(Nt/4), int(Nt/2), int(3*Nt/4), Nt-1]
-    # visualize_comparison(u_pinn, u_numerical, X, Y, t, times_to_plot)
-    
-    # error = np.abs(u_pinn - u_numerical)
-    # max_error = np.max(error)
-    # mean_error = np.mean(error)
-    # print(f"Maximum absolute error: {max_error:.3e}")
-    # print(f"Mean absolute error: {mean_error:.3e}")
-    
-    np.savez('membrane_results.npz', 
-             u_pinn=u_pinn, 
-             u_numerical=u_numerical,
-             x=x, y=y, t=t)
+    # Calculate and print some statistics
+    print("\nPrediction Statistics:")
+    print(f"Min value: {np.min(predictions):.6f}")
+    print(f"Max value: {np.max(predictions):.6f}")
+    print(f"Mean value: {np.mean(predictions):.6f}")
+    print(f"Number of points: {len(predictions)}")
 
 if __name__ == "__main__":
     main()

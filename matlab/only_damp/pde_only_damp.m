@@ -66,7 +66,7 @@ setInitialConditions(model,0,0);
 % Setting it manually raises an error
 
 fem = assembleFEMatrices(model);
-d = 1*fem.M + 0*fem.K;
+d = 1*t_f*fem.M + 0*fem.K;
 
 % Specify coefficients for the final damped model
 
@@ -141,6 +141,38 @@ for i = 1:n
     M(i) = frame;
 
 end
+
+%--------- MESH EXTRACTION -----------
+% Extract mesh points
+meshPoints = mesh.Nodes';  % N x 2 matrix of x,y coordinates
+numSpatialPoints = size(meshPoints, 1);
+
+% Create space-time collocation points with same size as original mesh
+spaceTimePoints = zeros(numSpatialPoints, 3);
+
+% Copy all spatial coordinates
+spaceTimePoints(:, 1:2) = meshPoints;
+
+% Assign time values - every 100 points get scaled time value
+pointsPerTimeStep = 100;
+for i = 1:numSpatialPoints
+    % Calculate normalized time (0 to 1)
+    timeNorm = floor((i-1)/pointsPerTimeStep) * pointsPerTimeStep / numSpatialPoints;
+    % Scale to tF
+    spaceTimePoints(i, 3) = timeNorm * tF;
+end
+
+% CSV generation
+headers = {'x', 'y', 't'};
+spaceTimeTable = array2table(spaceTimePoints, 'VariableNames', headers);
+% Save to CSV
+csvFileName = 'space_time_points.csv';
+writetable(spaceTimeTable, csvFileName);
+
+% Display confirmation message
+fprintf('Space-time points saved to %s\n', csvFileName);
+
+% -------------- END MESH EXTRACTION ------------------------
 
 % copy M to use later with movie
 movie_no_damp = M;
