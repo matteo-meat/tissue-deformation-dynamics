@@ -1,4 +1,4 @@
-csv = readtable('formatted_predictions.csv');
+csv = readtable('predictions.csv');
 u = csv{:,:};
 save('formatted_predictions.mat', 'u');
 
