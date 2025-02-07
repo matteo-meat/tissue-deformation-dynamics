@@ -43,7 +43,7 @@ for m = 1:length(modelTypes)
         mesh_full = load("mesh_full.mat");
         mesh_full = mesh_full.mesh;
         
-        figure
+        figure;
         umax = max(max(u));
         umin = min(min(u));
         gifFilename = 'membrane_pred_damp.gif';
@@ -78,6 +78,8 @@ for m = 1:length(modelTypes)
             M(i) = frame;
         
         end
+        
+        close;
 
         %% --- Compute Simulation Metrics ---
         % Calculate the maximum displacement at each time step
@@ -94,7 +96,7 @@ for m = 1:length(modelTypes)
         title('Maximum Displacement Over Time');
         grid on;
         savefig(fullfile(outputFolder, 'displ_damp.fig'));
-        close(gcf);  % Close the figure to avoid clutter
+        close;  % Close the figure to avoid clutter
 
         %% --- Plot L2 Norm Over Time ---
         figure;
@@ -104,7 +106,7 @@ for m = 1:length(modelTypes)
         title('L2 Norm of Displacement Over Time');
         grid on;
         savefig(fullfile(outputFolder, 'l2_damp.fig'));
-        close(gcf);
+        close;
 
         fprintf('Finished processing folder: %s\n', folderName);
     end
