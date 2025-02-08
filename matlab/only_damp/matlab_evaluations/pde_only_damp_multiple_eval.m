@@ -108,6 +108,56 @@ for m = 1:length(modelTypes)
         savefig(fullfile(outputFolder, 'l2_damp.fig'));
         close;
 
+        %% --- Error Membrane Simulation ---
+
+        figure;
+        umax = max(max(u_i - u));
+        umin = min(min(u_i - u));
+        gifFilename = 'error_membrane_pred_damp.gif';
+        gifFilename = fullfile(outputFolder, gifFilename);
+        frameDelay = 0.1;
+
+        for i=1:t
+            pdeplot(model, "XYData",u_i(:,i) - u(:,i),"ZData",u_i(:,i) - u(:,i), ...
+                "ZStyle","continuous","Mesh","off");
+            
+            zlim([umin umax]);
+        
+            xlabel('x')
+            ylabel('y')
+            zlabel('u_i - u')
+            title(sprintf('Time: %.2f s', tlist(i)))
+            colorbar
+        
+            drawnow;
+            frame = getframe(gcf);
+            img = frame2im(frame);
+            [imind, cm] = rgb2ind(img, 256);
+            
+            if i == 1
+                imwrite(imind, cm, gifFilename, 'gif', 'Loopcount', inf, 'DelayTime', frameDelay);
+            else
+                imwrite(imind, cm, gifFilename, 'gif', 'WriteMode', 'append', 'DelayTime', frameDelay);
+            end
+        
+            M(i) = frame;
+        
+        end
+        
+        close;
+
+        %% --- Plot Error difference Over Time ---
+        diff_e = u_i - u;
+
+        figure;
+        plot(tlist, diff_e, 'r', 'LineWidth', 2);
+        xlabel('Time (s)');
+        ylabel('Error difference');
+        title('Error difference Over Time');
+        grid on;
+        savefig(fullfile(outputFolder, 'error_difference_damp.fig'));
+        close;
+
         fprintf('Finished processing folder: %s\n', folderName);
     end
 end
