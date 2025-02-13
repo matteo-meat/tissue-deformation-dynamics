@@ -105,8 +105,8 @@ def ic_fn_vel(model, sample):
 
 
 # SETUP 1: batchsize = 500, lr = 0.002203836177626117
-# batchsize = 500
-# learning_rate = 0.002203836177626117
+batchsize = 500
+learning_rate = 0.002203836177626117
 
 # print("Building Domain Dataset")
 # domainDataset = DomainDataset([0.0]*num_inputs,[1.0]*num_inputs, 10000, batchsize, period = 3)
@@ -119,8 +119,8 @@ def ic_fn_vel(model, sample):
 
 #SETUP 2: batchsize = None, lr = 0.001
 
-batchsize = None
-learning_rate = 0.001
+# batchsize = None
+# learning_rate = 0.001
 
 print("Building Domain Dataset")
 domainDataset = DomainDataset([0.0]*num_inputs,[1.0]*num_inputs, 10000, period = 3)
@@ -135,15 +135,15 @@ validationicDataset = ICDataset([0.0]*(num_inputs-1),[1.0]*(num_inputs-1), 500, 
 
 # model = MLP([num_inputs] + [308]*8 + [1], nn.Tanh, hard_constraint, p_dropout=0.3)
 # model = MLP([num_inputs] + [308]*8 + [1], nn.ReLU, hard_constraint, p_dropout=0.3)
-model = MLP([num_inputs] + [308]*8 + [1], nn.SiLU, hard_constraint, p_dropout=0.3)
+# model = MLP([num_inputs] + [308]*8 + [1], nn.SiLU, hard_constraint, p_dropout=0.3)
 
 # model = MLP_RWF([num_inputs] + [308]*8 + [1], nn.Tanh, hard_constraint, p_dropout=0.3)
 # model = MLP_RWF([num_inputs] + [308]*8 + [1], nn.ReLU, hard_constraint, p_dropout=0.3)
 # model = MLP_RWF([num_inputs] + [308]*8 + [1], nn.SiLU, hard_constraint, p_dropout=0.3)
 
-#model = KAN_NET([num_inputs, 50, 1],grid_size=7, scale_noise=0.05, scale_spline=1.2, scale_base=1.5, activation_function=nn.Tanh, hard_constraint_fn=hard_constraint)
+model = KAN_NET([num_inputs, 50, 1],grid_size=7, scale_noise=0.05, scale_spline=1.2, scale_base=1.5, activation_function=nn.Tanh, hard_constraint_fn=hard_constraint)
 #model = KAN_NET([num_inputs, 50, 1],grid_size=7, scale_noise=0.05, scale_spline=1.2, scale_base=1.5, activation_function=nn.ReLU, hard_constraint_fn=hard_constraint)
-model = KAN_NET([num_inputs, 50, 1],grid_size=7, scale_noise=0.05, scale_spline=1.2, scale_base=1.5, activation_function=nn.SiLU, hard_constraint_fn=hard_constraint)
+#model = KAN_NET([num_inputs, 50, 1],grid_size=7, scale_noise=0.05, scale_spline=1.2, scale_base=1.5, activation_function=nn.SiLU, hard_constraint_fn=hard_constraint)
 
 component_manager = ComponentManager()
 r = ResidualComponent(pde_fn, domainDataset)

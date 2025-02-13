@@ -26,7 +26,7 @@ class EarlyStopping:
         self.v_loss_min = np.inf
         self.d = d
 
-    def __call__(self, v_loss, model):
+    def __call__(self, v_loss):
 
         if np.isnan(v_loss):
             print("Validation loss: NaN")
@@ -103,13 +103,14 @@ def train(data, output_to_file = True):
             l = component_manager.apply(model, train = True)
 
             # No regularization
-            reg_loss = model.regularization_loss(regularize_activation=0.0, regularize_entropy=0.0, use_original=False)
-            # Efficient L1 regularization
-            # reg_loss = model.regularization_loss(regularize_activation=1.0, regularize_entropy=1.0, use_original=False)
-            # # Paper L1 regularization
-            # reg_loss = model.regularization_loss(regularize_activation=1.0, regularize_entropy=1.0, use_original=True)
-            
-            total_loss = l + reg_loss
+            if (name == 'KAN'):
+                reg_loss = model.regularization_loss(regularize_activation=0.0, regularize_entropy=0.0, use_original=False)
+                # Efficient L1 regularization
+                # reg_loss = model.regularization_loss(regularize_activation=1.0, regularize_entropy=1.0, use_original=False)
+                # # Paper L1 regularization
+                # reg_loss = model.regularization_loss(regularize_activation=1.0, regularize_entropy=1.0, use_original=True)
+                l += reg_loss
+
             l.backward()    
             optimizer.step() 
             optimizer.zero_grad()
@@ -131,8 +132,9 @@ def train(data, output_to_file = True):
         epoch_val_loss = np.average(validation_losses)
         test_loss.append(epoch_val_loss)
         
+        
 
-        print(f"Epoch nr. {epoch}, avg train loss: {epoch_train_loss}, avg validation loss: {epoch_val_loss}")
+        print(f"Epoch nr. {epoch}, avg train loss: {epoch_train_loss}, avg validation loss: {epoch_val_loss}, best training loss: {np.min(train_losses)},best validation loss: {np.min(validation_losses)}")
         
         if output_to_file and epoch % 25 == 0:
             epoch_path = os.path.join(model_dir, f"model_{epoch}.pt")
@@ -144,7 +146,7 @@ def train(data, output_to_file = True):
         torch.cuda.empty_cache()
 
         #Early Stopping
-        early_stopping(epoch_val_loss, model)
+        early_stopping(epoch_val_loss)
         if early_stopping.e_s:
             print("Early Stopping")
             break
