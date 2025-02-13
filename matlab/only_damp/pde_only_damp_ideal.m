@@ -90,22 +90,22 @@ tlist = linspace(0,tF,n);
 % To avoid solving the pde (computationally expensive)
 % every time if conditions don't change
 
-resultsFile = 'pde_ideal_with_damping.mat';
-
-if isfile(resultsFile)
-    disp('Loading results from file...');
-    load(resultsFile, 'result', 'tlist', 'u');
-else
+% resultsFile = 'pde_ideal_with_damping.mat';
+% 
+% if isfile(resultsFile)
+%     disp('Loading results from file...');
+%     load(resultsFile, 'result', 'tlist', 'u');
+% else
     % Solve PDE and save results
     model.SolverOptions.ReportStatistics = 'on';
     disp('Solving PDE with damping...');
     result = solvepde(model, tlist);
     u = result.NodalSolution;
 
-    % Save results to file
-    save(resultsFile, 'result', 'tlist', 'u');
-    disp('Results saved to file.');
-end
+%     % Save results to file
+%     save(resultsFile, 'result', 'tlist', 'u');
+%     disp('Results saved to file.');
+% end
 
 % Create animation
 figure
@@ -143,33 +143,6 @@ for i = 1:n
     M(i) = frame;
 
 end
-
-% copy M to use later with movie
-movie_no_damp = M;
-
-% Calculate the maximum displacement at each time step
-maxDisplacement = max(abs(u), [], 1);
-
-% Calculate the L2 norm of the displacement at each time step
-l2Norm = sqrt(sum(u.^2, 1));
-
-% Plot the maximum displacement over time
-figure;
-plot(tlist, maxDisplacement, 'r', 'LineWidth', 2);
-xlabel('Time (s)');
-ylabel('Maximum Displacement');
-title('Maximum Displacement Over Time');
-grid on;
-savefig('ideal_damp.fig')
-
-% Plot the L2 norm over time
-figure;
-plot(tlist, l2Norm, 'b', 'LineWidth', 2);
-xlabel('Time (s)');
-ylabel('L2 Norm of Displacement');
-title('L2 Norm of Displacement Over Time');
-grid on;
-savefig('l2_ideal_damp.fig')
 
 % External force function (Gaussian as in Python)
 function f = externalForce(location,~)

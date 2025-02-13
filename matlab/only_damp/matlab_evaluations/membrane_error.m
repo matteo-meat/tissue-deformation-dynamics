@@ -1,6 +1,6 @@
 tF = 1;
 n = 100;
-tlist = linspace(0,tF,n);
+t_line = linspace(0,tF,n);
 
 mesh_full = load("mesh_full.mat");
 mesh_full = mesh_full.mesh;   
@@ -29,20 +29,20 @@ frameDelay = 0.1;
 for i=1:n
     pdeplot(mesh_full, "XYData",u_i(:,i) - u_eval(:,i),"ZData",u_i(:,i) - u_eval(:,i), ...
         "ZStyle","continuous","Mesh","off");
-    
+
     zlim([umin umax]);
 
     xlabel('x')
     ylabel('y')
     zlabel('u_i - u')   
-    title(sprintf('Time: %.2f s', tlist(i)))
+    title(sprintf('Time: %.2f s', t_line(i)))
     colorbar
 
     drawnow;
     frame = getframe(gcf);
     img = frame2im(frame);
     [imind, cm] = rgb2ind(img, 256);
-    
+
     if i == 1
         imwrite(imind, cm, gifFilename, 'gif', 'Loopcount', inf, 'DelayTime', frameDelay);
     else
@@ -53,4 +53,27 @@ for i=1:n
 
 end
 
+close;
+
+% --- Plot Error difference ---
+diff_e = u_i - u_eval;
+
+figure;
+plot(tlist, diff_e, 'r', 'LineWidth', 2);
+xlabel('Time (s)');
+ylabel('Error');
+title('Error Over Time');
+grid on;
+savefig(fullfile(outputFolder, 'error_plot_damp.fig'));
+close;
+
+l2_error = sqrt(sum(diff_e.^2));
+
+figure;
+plot(tlist, l2_error, 'b', 'LineWidth', 2);
+xlabel('Time (s)');
+ylabel('L2 Norm');
+title('L2 Norm of Error');
+grid on;
+savefig(fullfile(outputFolder, 'l2_plot_damp.fig'));
 close;

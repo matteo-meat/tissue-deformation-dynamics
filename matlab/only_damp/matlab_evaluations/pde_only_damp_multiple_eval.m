@@ -1,7 +1,7 @@
 baseInputFolder  = 'predictions_csv_files';
 
 modelTypes = {'MLP', 'KAN', 'RWF'};
-numInstances = 6; 
+numInstances = 6;
 
 %% --- Loop Over Each Model Folder ---
 for m = 1:length(modelTypes)
@@ -79,33 +79,6 @@ for m = 1:length(modelTypes)
         
         end
         
-        close;
-
-        %% --- Compute Simulation Metrics ---
-        % Calculate the maximum displacement at each time step
-        maxDisplacement = max(abs(u), [], 1);
-
-        % Calculate the L2 norm of the displacement at each time step
-        l2Norm = sqrt(sum(u.^2, 1));
-
-        %% --- Plot Maximum Displacement Over Time ---
-        figure;
-        plot(tlist, maxDisplacement, 'r', 'LineWidth', 2);
-        xlabel('Time (s)');
-        ylabel('Maximum Displacement');
-        title('Maximum Displacement Over Time');
-        grid on;
-        savefig(fullfile(outputFolder, 'displ_damp.fig'));
-        close;  % Close the figure to avoid clutter
-
-        %% --- Plot L2 Norm Over Time ---
-        figure;
-        plot(tlist, l2Norm, 'b', 'LineWidth', 2);
-        xlabel('Time (s)');
-        ylabel('L2 Norm of Displacement');
-        title('L2 Norm of Displacement Over Time');
-        grid on;
-        savefig(fullfile(outputFolder, 'l2_damp.fig'));
         close;
 
         fprintf('Finished processing folder: %s\n', folderName);
