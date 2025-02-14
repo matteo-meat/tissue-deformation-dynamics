@@ -104,9 +104,9 @@ def train(data, output_to_file = True):
 
             # No regularization
             if (name == 'KAN'):
-                reg_loss = model.regularization_loss(regularize_activation=0.0, regularize_entropy=0.0, use_original=False)
+                # reg_loss = model.regularization_loss(regularize_activation=0.0, regularize_entropy=0.0, use_original=False)
                 # Efficient L1 regularization
-                # reg_loss = model.regularization_loss(regularize_activation=1.0, regularize_entropy=1.0, use_original=False)
+                reg_loss = model.regularization_loss(regularize_activation=1.0, regularize_entropy=1.0, use_original=False)
                 # # Paper L1 regularization
                 # reg_loss = model.regularization_loss(regularize_activation=1.0, regularize_entropy=1.0, use_original=True)
                 l += reg_loss
