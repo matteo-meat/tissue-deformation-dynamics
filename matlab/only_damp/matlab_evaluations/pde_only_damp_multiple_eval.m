@@ -41,7 +41,7 @@ for m = 1:length(modelTypes)
         t_line = linspace(0, 10, t);
         
         mesh_full = load("mesh_full.mat");
-        mesh_full = mesh_full.nodes;
+        mesh_full = mesh_full.mesh;
         
         figure;
         umax = max(max(u));

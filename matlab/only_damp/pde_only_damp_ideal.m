@@ -57,8 +57,8 @@ applyBoundaryCondition(model,"dirichlet","Edge",[1,2,3,4],"u",-u_min/delta_u);
 % Generate mesh: value chosen to avoid Matlab crash
 
 mesh = generateMesh(model, 'Hmax', 0.05);
-nodes = mesh.Nodes.';
-save("mesh_nodes.mat", "nodes", "-mat");
+% nodes = mesh.Nodes.';
+save("mesh_nodes.mat", "mesh", "-mat");
 
 % Set initial conditions (zero displacement and velocity as in Python)
 

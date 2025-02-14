@@ -1,7 +1,7 @@
 baseInputFolder  = 'predictions_csv_files';
 
 % Construct folder name (e.g., 'MLP_1') and determine input/output folders.
-folderName = "KAN_1";
+folderName = "KAN_7";
 inputFolder = fullfile(baseInputFolder, folderName);
 
 if ~exist(inputFolder, 'dir')
