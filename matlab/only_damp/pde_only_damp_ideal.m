@@ -90,22 +90,22 @@ tlist = linspace(0,tF,n);
 % To avoid solving the pde (computationally expensive)
 % every time if conditions don't change
 
-% resultsFile = 'pde_ideal_with_damping.mat';
-% 
-% if isfile(resultsFile)
-%     disp('Loading results from file...');
-%     load(resultsFile, 'result', 'tlist', 'u');
-% else
+resultsFile = 'pde_ideal_with_damping.mat';
+
+if isfile(resultsFile)
+    disp('Loading results from file...');
+    load(resultsFile, 'result', 'tlist', 'u');
+else
     % Solve PDE and save results
     model.SolverOptions.ReportStatistics = 'on';
     disp('Solving PDE with damping...');
     result = solvepde(model, tlist);
     u = result.NodalSolution;
 
-%     % Save results to file
-%     save(resultsFile, 'result', 'tlist', 'u');
-%     disp('Results saved to file.');
-% end
+    % Save results to file
+    save(resultsFile, 'result', 'tlist', 'u');
+    disp('Results saved to file.');
+end
 
 % Create animation
 figure
@@ -116,6 +116,8 @@ umin = min(min(u));
 gifFilename = 'membrane_ideal_with_damping.gif';
 frameDelay = 0.1;
 
+t_line = linspace(0, 10, n);
+
 disp("Starting for loop")
 for i = 1:n
     pdeplot(model,"XYData",u(:,i),"ZData",u(:,i), ...
@@ -124,7 +126,7 @@ for i = 1:n
     xlabel('x')
     ylabel('y')
     zlabel('u')
-    title(sprintf('Time: %.2f s', tlist(i)))
+    title(sprintf('Time: %.2f s', t_line(i)))
     colorbar
 
     % Capture the current frame

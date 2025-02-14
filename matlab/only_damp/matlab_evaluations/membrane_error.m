@@ -1,4 +1,4 @@
-tF = 1;
+tF = 10;
 n = 100;
 t_line = linspace(0,tF,n);
 
@@ -59,7 +59,7 @@ close;
 diff_e = u_i - u_eval;
 
 figure;
-plot(tlist, diff_e, 'r', 'LineWidth', 2);
+plot(t_line, diff_e, 'r', 'LineWidth', 2);
 xlabel('Time (s)');
 ylabel('Error');
 title('Error Over Time');
@@ -70,7 +70,7 @@ close;
 l2_error = sqrt(sum(diff_e.^2));
 
 figure;
-plot(tlist, l2_error, 'b', 'LineWidth', 2);
+plot(t_line, l2_error, 'b', 'LineWidth', 2);
 xlabel('Time (s)');
 ylabel('L2 Norm');
 title('L2 Norm of Error');

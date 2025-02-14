@@ -38,7 +38,7 @@ for m = 1:length(modelTypes)
         u = u.u;
 
         t = size(u,2);
-        tlist = linspace(0, 1, size(u,2));
+        t_line = linspace(0, 10, t);
         
         mesh_full = load("mesh_full.mat");
         mesh_full = mesh_full.mesh;
@@ -59,7 +59,7 @@ for m = 1:length(modelTypes)
             xlabel('x')
             ylabel('y')
             zlabel('u')
-            title(sprintf('Time: %.2f s', tlist(i)))
+            title(sprintf('Time: %.2f s', t_line(i)))
             colorbar
         
             % Capture the current frame
