@@ -15,7 +15,7 @@ else
     disp("Error loading ideal results!")
 end
 
-outputFolder = "KAN_7";
+outputFolder = "KAN_1";
 u_eval = load(fullfile(outputFolder, 'formatted_predictions.mat'));
 u_eval = u_eval.u;  
 

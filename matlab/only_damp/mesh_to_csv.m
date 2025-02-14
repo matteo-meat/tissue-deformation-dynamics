@@ -3,7 +3,7 @@ tF = 1;
 n = 100;  % number of time steps
 tlist = linspace(0,tF,n);
 
-load("./output_files/mesh_nodes.mat")
+load("mesh_nodes.mat")
 meshPoints = nodes;  % N x 2 matrix of x,y coordinates
 meshPoints_ext = [meshPoints zeros(size(meshPoints, 1), 1)];
 meshPoints_copy = meshPoints_ext;
@@ -17,7 +17,7 @@ end
 headers = {'x', 'y', 't'};
 spaceTimeTable = array2table(meshPoints_ext, 'VariableNames', headers);
 % Save to CSV
-csvFileName = './output_files/space_time_points.csv';
+csvFileName = 'space_time_points.csv';
 writetable(spaceTimeTable, csvFileName);
 
 % Display confirmation message

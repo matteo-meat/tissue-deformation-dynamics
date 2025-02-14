@@ -37,6 +37,7 @@ pdegplot(model,"EdgeLabels","on");
 title("Square Membrane Geometry With Edge Labels")
 xlabel("x")
 ylabel("y")
+close;
 
 % First specify the coefficients for the undamped model,
 % otherwise Matlab raises an error
@@ -146,6 +147,8 @@ for i = 1:n
     M(i) = frame;
 
 end
+
+close;
 
 % External force function (Gaussian as in Python)
 function f = externalForce(location,~)
