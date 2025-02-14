@@ -51,7 +51,7 @@ specifyCoefficients(model, ...
 
 % Apply zero Dirichlet boundary conditions on all edges (fixed boundaries)
 
-applyBoundaryCondition(model,"dirichlet","Edge",[1,2,3,4],"u",0);
+applyBoundaryCondition(model,"dirichlet","Edge",[1,2,3,4],"u",-u_min/delta_u);
 
 % Generate mesh: value chosen to avoid Matlab crash
 
@@ -61,7 +61,7 @@ save("mesh_nodes.mat", "nodes", "-mat");
 
 % Set initial conditions (zero displacement and velocity as in Python)
 
-setInitialConditions(model,0,0);
+setInitialConditions(model,-u_min/delta_u,0);
 
 % Compute damping coefficient according to
 % https://it.mathworks.com/help/pde/ug/pde.pdemodel.specifycoefficients.html#mw_90c0a86d-26a6-4abf-9c79-c89129275bf2
@@ -101,6 +101,7 @@ else
     disp('Solving PDE with damping...');
     result = solvepde(model, tlist);
     u = result.NodalSolution;
+    u = (u*delta_u)+u_min;
 
     % Save results to file
     save(resultsFile, 'result', 'tlist', 'u');
