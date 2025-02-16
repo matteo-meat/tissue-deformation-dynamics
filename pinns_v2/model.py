@@ -172,7 +172,7 @@ class KAN(nn.Module): #Single layer
     def b_splines(self, x: torch.Tensor):
 
         x = x.unsqueeze(-1)
-
+        
         grid: torch.Tensor = (self.grid)
 
         b1 = (x >= grid[:, :-1])
@@ -278,8 +278,13 @@ class KAN(nn.Module): #Single layer
                 + regularize_entropy * regularization_loss_entropy
             )
         else:  # Original paper implementation
-            batch_size = 500  # Can be adjusted based on memory constraints
-            x = torch.linspace(self.grid[0, 0], self.grid[0, -1], batch_size).to(self.w.device)
+            batch_size = 500 # adjust this: 500 or 1 depending on training setup
+            x_samples = []
+            for i in range(self.in_features):
+                x_i = torch.linspace(self.grid[i, 0], self.grid[i, -1], batch_size).to(self.w.device)
+                x_samples.append(x_i)
+            
+            x = torch.stack(x_samples, dim = 1)
             
             # Compute B-spline basis for sample points
             spline_basis = self.b_splines(x)  # Shape: [batch_size, in_features, grid_size + spline_order]
