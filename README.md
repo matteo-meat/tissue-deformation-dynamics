@@ -10,9 +10,9 @@ The implemeted steps to learn tissue deformation dynamics are the following:
 - Neural Networks: MLP, MLP with RWF and KAN
 
 ### Authors:
-- Matteo Carnebella 2069266
-- Michael Corelli 1938627
-- Francesco Di Lorenzo 1846099
+- Matteo Carnebella
+- Michael Corelli
+- Francesco Di Lorenzo
 
 ### Useful link:
 KAN useful link:
