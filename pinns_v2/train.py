@@ -55,6 +55,7 @@ def train(data, output_to_file = True):
     optimizer = data.get("optimizer")
     scheduler = data.get("scheduler")
     component_manager = data.get("component_manager")
+    reg = data.get("regularization")
     additional_data = data.get("additional_data")
 
     if output_to_file:
@@ -103,12 +104,16 @@ def train(data, output_to_file = True):
             l = component_manager.apply(model, train = True)
 
             if (name == 'KAN'):
-                # No regularization
-                # reg_loss = model.regularization_loss(regularize_activation=0.0, regularize_entropy=0.0, use_original=False)
-                # Efficient L1 regularization
-                # reg_loss = model.regularization_loss(regularize_activation=1.0, regularize_entropy=1.0, use_original=False)
-                # Paper L1 regularization
-                reg_loss = model.regularization_loss(regularize_activation=1.0, regularize_entropy=1.0, use_original=True)
+                if(reg == 'noreg'):
+                    # No regularization
+                    reg_loss = model.regularization_loss(regularize_activation=0.0, regularize_entropy=0.0, use_original=False)
+                elif(reg == 'eff_reg'):
+                    # Efficient L1 regularization
+                    reg_loss = model.regularization_loss(regularize_activation=1.0, regularize_entropy=1.0, use_original=False)
+                elif(reg == 'orig_reg'):
+                    # Paper L1 regularization
+                    reg_loss = model.regularization_loss(regularize_activation=1.0, regularize_entropy=1.0, use_original=True)
+                
                 l += reg_loss
 
             l.backward()    

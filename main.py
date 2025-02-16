@@ -1,10 +1,11 @@
-from pinns_v2.model import MLP, MLP_RWF, KAN_NET
-from pinns_v2.components import ComponentManager, ResidualComponent, ICComponent
-from pinns_v2.rff import GaussianEncoding 
+import sys
 import torch
 import torch.nn as nn
 import torch.optim as optim
 import numpy as np
+from pinns_v2.model import MLP, MLP_RWF, KAN_NET
+from pinns_v2.components import ComponentManager, ResidualComponent, ICComponent
+from pinns_v2.rff import GaussianEncoding 
 #from pinns.train import train
 from pinns_v2.train import train
 from pinns_v2.gradient import _jacobian
@@ -102,82 +103,117 @@ def ic_fn_vel(model, sample):
     ics = torch.zeros_like(dt)
     return dt, ics
 
+def errorMessage():
+    print("Invalid input arguments!\n")
+    print('If you want to train a KAN, the correct format is:\n')
+    print('"python main.py KAN [tanh or relu or silu] [setup1 or setup2] [noreg or orig_reg or eff_reg]\n')
+    print('If you want to train MLP or RWF, the correct format is:\n')
+    print('python main.py [MLP or RWF] [tanh or relu or silu] [setup1 or setup2]')
+
+def main():
+
+    args = sys.argv[1:]
+
+    if (args[0] == 'KAN' and len(args) != 4) or ((args[0] == 'MLP' or args[0] == 'RWF') and len(args) != 3):
+        errorMessage()
+        return
+    else:
+        if args[1] == 'tanh':
+            act_fun = nn.Tanh
+        elif args[1] == 'relu':
+            act_fun = nn.ReLU
+        elif args[1] == 'silu':
+            act_fun = nn.SiLU
+        else:
+            errorMessage()
+            return
+        
+        if args[2] == 'setup1':
+            
+            # SETUP 1: batchsize = 500, lr = 0.002203836177626117
+            batchsize = 500
+            learning_rate = 0.002203836177626117
+
+            print("Building Domain Dataset")
+            domainDataset = DomainDataset([0.0]*num_inputs,[1.0]*num_inputs, 10000, batchsize, period = 3)
+            print("Building IC Dataset")
+            icDataset = ICDataset([0.0]*(num_inputs-1),[1.0]*(num_inputs-1), 10000, batchsize, period = 3)
+            print("Building Validation Dataset")
+            validationDataset = DomainDataset([0.0]*num_inputs,[1.0]*num_inputs, 500, batchsize, shuffle = False)
+            print("Building Validation IC Dataset")
+            validationicDataset = ICDataset([0.0]*(num_inputs-1),[1.0]*(num_inputs-1), 500, batchsize, shuffle = False)
+        
+        elif args[2] == 'setup2':
+
+            #SETUP 2: batchsize = None, lr = 0.001
+
+            batchsize = None
+            learning_rate = 0.001
+
+            print("Building Domain Dataset")
+            domainDataset = DomainDataset([0.0]*num_inputs,[1.0]*num_inputs, 10000, period = 3)
+            print("Building IC Dataset")
+            icDataset = ICDataset([0.0]*(num_inputs-1),[1.0]*(num_inputs-1), 10000, period = 3)
+            print("Building Validation Dataset")
+            validationDataset = DomainDataset([0.0]*num_inputs,[1.0]*num_inputs, 500, shuffle = False)
+            print("Building Validation IC Dataset")
+            validationicDataset = ICDataset([0.0]*(num_inputs-1),[1.0]*(num_inputs-1), 500, shuffle = False)
+        
+        else:
+            errorMessage()
+            return
+
+        if args[0] == 'KAN':
+            model = KAN_NET([num_inputs, 50, 1],grid_size=7, scale_noise=0.05, scale_spline=1.2, scale_base=1.5, activation_function=act_fun, hard_constraint_fn=hard_constraint)
+            reg = args[3]
+
+        elif args[0] == 'MLP':
+            model = MLP([num_inputs] + [308]*8 + [1], act_fun, hard_constraint, p_dropout=0.3)
+            reg = 'noreg'
+
+        elif args[0] == 'RWF':
+            model = MLP_RWF([num_inputs] + [308]*8 + [1], act_fun, hard_constraint, p_dropout=0.3)
+            reg = 'noreg'
+
+        else:
+            errorMessage()
+            return
+
+    # encoding = GaussianEncoding(sigma = 1.0, input_size=num_inputs, encoded_size=154)
+
+    component_manager = ComponentManager()
+    r = ResidualComponent(pde_fn, domainDataset)
+    component_manager.add_train_component(r)
+    ic = ICComponent([ic_fn_vel], icDataset)
+    component_manager.add_train_component(ic)
+    r = ResidualComponent(pde_fn, validationDataset)
+    component_manager.add_validation_component(r)
+    ic = ICComponent([ic_fn_vel], validationicDataset)
+    component_manager.add_validation_component(ic)
 
 
-# # SETUP 1: batchsize = 500, lr = 0.002203836177626117
-batchsize = 500
-learning_rate = 0.002203836177626117
+    def init_normal(m):
+        if type(m) == torch.nn.Linear:
+            torch.nn.init.xavier_uniform_(m.weight)
 
-print("Building Domain Dataset")
-domainDataset = DomainDataset([0.0]*num_inputs,[1.0]*num_inputs, 10000, batchsize, period = 3)
-print("Building IC Dataset")
-icDataset = ICDataset([0.0]*(num_inputs-1),[1.0]*(num_inputs-1), 10000, batchsize, period = 3)
-print("Building Validation Dataset")
-validationDataset = DomainDataset([0.0]*num_inputs,[1.0]*num_inputs, 500, batchsize, shuffle = False)
-print("Building Validation IC Dataset")
-validationicDataset = ICDataset([0.0]*(num_inputs-1),[1.0]*(num_inputs-1), 500, batchsize, shuffle = False)
+    model = model.apply(init_normal)
+    model = model.to(device)
+    optimizer = optim.Adam(model.parameters(), lr=learning_rate, betas = (0.9,0.99),eps = 10**-15)
+    scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=1721, gamma=0.15913059595003437)
 
-# #SETUP 2: batchsize = None, lr = 0.001
+    data = {
+        "name": args[0], # MLP, RWF, KAN set one of these before training
+        "model": model,
+        "epochs": epochs,
+        "batchsize": batchsize,
+        "optimizer": optimizer,
+        "scheduler": scheduler,
+        "component_manager": component_manager,
+        "regularization": reg,
+        "additional_data": params
+    }
 
-# # batchsize = None
-# # learning_rate = 0.001
+    train(data, output_to_file=True)
 
-# print("Building Domain Dataset")
-# domainDataset = DomainDataset([0.0]*num_inputs,[1.0]*num_inputs, 10000, period = 3)
-# print("Building IC Dataset")
-# icDataset = ICDataset([0.0]*(num_inputs-1),[1.0]*(num_inputs-1), 10000, period = 3)
-# print("Building Validation Dataset")
-# validationDataset = DomainDataset([0.0]*num_inputs,[1.0]*num_inputs, 500, shuffle = False)
-# print("Building Validation IC Dataset")
-# validationicDataset = ICDataset([0.0]*(num_inputs-1),[1.0]*(num_inputs-1), 500, shuffle = False)
-
-# # encoding = GaussianEncoding(sigma = 1.0, input_size=num_inputs, encoded_size=154)
-
-# # model = MLP([num_inputs] + [308]*8 + [1], nn.Tanh, hard_constraint, p_dropout=0.3)
-# # model = MLP([num_inputs] + [308]*8 + [1], nn.ReLU, hard_constraint, p_dropout=0.3)
-# # model = MLP([num_inputs] + [308]*8 + [1], nn.SiLU, hard_constraint, p_dropout=0.3)
-
-# # model = MLP_RWF([num_inputs] + [308]*8 + [1], nn.Tanh, hard_constraint, p_dropout=0.3)
-# # model = MLP_RWF([num_inputs] + [308]*8 + [1], nn.ReLU, hard_constraint, p_dropout=0.3)
-# # model = MLP_RWF([num_inputs] + [308]*8 + [1], nn.SiLU, hard_constraint, p_dropout=0.3)
-
-model = KAN_NET([num_inputs, 50, 1],grid_size=7, scale_noise=0.05, scale_spline=1.2, scale_base=1.5, activation_function=nn.Tanh, hard_constraint_fn=hard_constraint)
-# model = KAN_NET([num_inputs, 50, 1],grid_size=7, scale_noise=0.05, scale_spline=1.2, scale_base=1.5, activation_function=nn.ReLU, hard_constraint_fn=hard_constraint)
-# #model = KAN_NET([num_inputs, 50, 1],grid_size=7, scale_noise=0.05, scale_spline=1.2, scale_base=1.5, activation_function=nn.SiLU, hard_constraint_fn=hard_constraint)
-
-component_manager = ComponentManager()
-r = ResidualComponent(pde_fn, domainDataset)
-component_manager.add_train_component(r)
-ic = ICComponent([ic_fn_vel], icDataset)
-component_manager.add_train_component(ic)
-r = ResidualComponent(pde_fn, validationDataset)
-component_manager.add_validation_component(r)
-ic = ICComponent([ic_fn_vel], validationicDataset)
-component_manager.add_validation_component(ic)
-
-
-def init_normal(m):
-    if type(m) == torch.nn.Linear:
-        torch.nn.init.xavier_uniform_(m.weight)
-
-model = model.apply(init_normal)
-model = model.to(device)
-optimizer = optim.Adam(model.parameters(), lr=learning_rate, betas = (0.9,0.99),eps = 10**-15)
-#optimizer = optim.Adam(model.parameters(), lr=learning_rate)
-#scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, 'min', patience=20, factor=0.5)
-scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=1721, gamma=0.15913059595003437)
-# optimizer = optim.SGD(model.parameters(), lr=0.01, momentum=0.9)
-
-data = {
-    "name": 'KAN', # MLP, RWF, KAN set one of these before training
-    "model": model,
-    "epochs": epochs,
-    "batchsize": batchsize,
-    "optimizer": optimizer,
-    "scheduler": scheduler,
-    "component_manager": component_manager,
-    "additional_data": params
-}
-
-train(data, output_to_file=True)
+main()
  
