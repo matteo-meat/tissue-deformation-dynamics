@@ -106,9 +106,9 @@ def train(data, output_to_file = True):
                 # No regularization
                 # reg_loss = model.regularization_loss(regularize_activation=0.0, regularize_entropy=0.0, use_original=False)
                 # Efficient L1 regularization
-                reg_loss = model.regularization_loss(regularize_activation=1.0, regularize_entropy=1.0, use_original=False)
+                # reg_loss = model.regularization_loss(regularize_activation=1.0, regularize_entropy=1.0, use_original=False)
                 # Paper L1 regularization
-                #reg_loss = model.regularization_loss(regularize_activation=1.0, regularize_entropy=1.0, use_original=True)
+                reg_loss = model.regularization_loss(regularize_activation=1.0, regularize_entropy=1.0, use_original=True)
                 l += reg_loss
 
             l.backward()    
@@ -151,7 +151,7 @@ def train(data, output_to_file = True):
             print("Early Stopping")
             break
 
-    print(f"Finished training! Avg train loss: {np.average(train_loss)}; Avg val loss: {np.average(test_loss)}")
+    print(f"Finished training! Avg train loss: {np.average(train_loss)}; Avg val loss: {np.average(test_loss)}; Best training loss: {np.min(train_loss)}; Best validation loss: {np.min(test_loss)}")
     model_path = os.path.join(model_dir, f"model_{epoch}.pt")
 
     # Save the model
