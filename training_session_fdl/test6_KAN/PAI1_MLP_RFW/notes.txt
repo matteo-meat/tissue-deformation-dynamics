@@ -1,9 +1,0 @@
-leanrning rate = 0.002203836177626117
-grid_size=7,
-activation_function=nn.Tanh
-scale_noise=0.05
-scale_spline=1.2
-scale_base=1.5
-batch_size = 500
-
-

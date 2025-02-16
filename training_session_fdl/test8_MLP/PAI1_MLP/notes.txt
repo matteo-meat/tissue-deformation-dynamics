@@ -1,4 +1,0 @@
-leanrning rate = 0.002203836177626117
-batch_size = 500
-dropout = 0.3
-activation = Tanh
