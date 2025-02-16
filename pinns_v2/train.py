@@ -11,9 +11,41 @@ import gc
 train_loss = []  # To store losses
 test_loss = []
 
-
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
+#If the validation loss does not improve after t -> stop training
+class EarlyStopping:
+
+    def __init__(self, t = 50, d = 0):
+        #t (int): how long to wait
+        #d (float): minimum change
+        self.t = t
+        self.c = 0
+        self.best_v_loss = None
+        self.e_s = False
+        self.v_loss_min = np.inf
+        self.d = d
+
+    def __call__(self, v_loss):
+
+        if np.isnan(v_loss):
+            print("Validation loss: NaN")
+            return
+
+        if self.best_v_loss is None:
+            self.best_v_loss = v_loss
+
+        elif v_loss < self.best_v_loss - self.d:
+
+            self.best_v_loss = v_loss
+            self.c = 0
+
+        else:
+
+            self.c += 1
+            
+            if self.c >= self.t:
+                self.e_s = True
 
 def train(data, output_to_file = True):  
     name = data.get("name", "main")
@@ -23,30 +55,27 @@ def train(data, output_to_file = True):
     optimizer = data.get("optimizer")
     scheduler = data.get("scheduler")
     component_manager = data.get("component_manager")
+    reg = data.get("regularization")
     additional_data = data.get("additional_data")
 
     if output_to_file:
         current_file = os.getcwd()
-        output_dir = os.path.join(current_file, "output", name)
+        mother_dir = os.path.join(current_file, "training")
+        counter = 1
+        train_dir = os.path.join(mother_dir, name + "_" + str(counter))
         
-        if os.path.exists(output_dir):
-            counter = 1
+        if os.path.exists(train_dir):
             while True:
-                output_dir = os.path.join(current_file, "output", name+"_"+str(counter))
-                if not os.path.exists(output_dir):
+                counter += 1
+                train_dir = os.path.join(current_file, "training", name + "_" + str(counter))
+                if not os.path.exists(train_dir):
                     break
-                else:
-                    counter +=1
                     
-        model_dir = os.path.join(output_dir, "model")
+        model_dir = os.path.join(train_dir, "model")
         if not os.path.exists(model_dir):
             os.makedirs(model_dir)
-            
 
-        model_path = os.path.join(model_dir, f"model.pt")
-        file_path = f"{output_dir}/train.txt"
-
-        params_path = f"{output_dir}/params.json"
+        params_path = f"{train_dir}/params.json"
         params = {
             "name": name,
             "model": str(model),
@@ -66,28 +95,35 @@ def train(data, output_to_file = True):
     #for temporal causality weights
     model = model.to(device)
 
+    early_stopping = EarlyStopping(t = 50)
+
     for epoch in range(epochs):
         model.train(True)
         train_losses = []
         for i in range(component_manager.number_of_iterations(train = True)):
             l = component_manager.apply(model, train = True)
+
+            if (name == 'KAN'):
+                if(reg == 'noreg'):
+                    # No regularization
+                    reg_loss = model.regularization_loss(regularize_activation=0.0, regularize_entropy=0.0, use_original=False)
+                elif(reg == 'eff_reg'):
+                    # Efficient L1 regularization
+                    reg_loss = model.regularization_loss(regularize_activation=1.0, regularize_entropy=1.0, use_original=False)
+                elif(reg == 'orig_reg'):
+                    # Paper L1 regularization
+                    reg_loss = model.regularization_loss(regularize_activation=1.0, regularize_entropy=1.0, use_original=True)
+                
+                l += reg_loss
+
             l.backward()    
             optimizer.step() 
             optimizer.zero_grad()
 
             train_losses.append(l.item())
-
-            if i % 10 ==0:
-                print('Train Epoch: {} [{}/{} ({:.0f}%)]\tLoss: {:.10f}'.format(
-                    epoch, i, component_manager.number_of_iterations(train = True),
-                    100. * i / component_manager.number_of_iterations(train = True), l.item()))
-                
-                # Save to log file
-                #log_file.write('Train Epoch: {} [{}/{} ({:.0f}%)]\tLoss: {:.10f}\n'.format(
-                #    epoch, batch_idx, int(len(dataloader.dataset)/batchsize),
-                #    100. * batch_idx / len(dataloader), loss.item()))
         
-        train_loss.append(np.average(train_losses))
+        epoch_train_loss = np.average(train_losses)
+        train_loss.append(epoch_train_loss)
 
         model.eval()
         validation_losses = []
@@ -98,14 +134,14 @@ def train(data, output_to_file = True):
             del l
             gc.collect()
             
-            if i % 10 == 0:
-                print('Validation Epoch: {} \tLoss: {:.10f}'.format(
-                    epoch, np.average(validation_losses)))
-            
+        epoch_val_loss = np.average(validation_losses)
+        test_loss.append(epoch_val_loss)
         
-        test_loss.append(np.average(validation_losses))
-                
-        if output_to_file and epoch % 20 == 0:
+        
+
+        print(f"Epoch nr. {epoch}, avg train loss: {epoch_train_loss}, avg validation loss: {epoch_val_loss}, best training loss: {np.min(train_losses)},best validation loss: {np.min(validation_losses)}")
+        
+        if output_to_file and epoch % 25 == 0:
             epoch_path = os.path.join(model_dir, f"model_{epoch}.pt")
             torch.save(model, epoch_path)
         
@@ -113,7 +149,16 @@ def train(data, output_to_file = True):
             scheduler.step()
 
         torch.cuda.empty_cache()
-    
+
+        #Early Stopping
+        early_stopping(epoch_val_loss)
+        if early_stopping.e_s:
+            print("Early Stopping")
+            break
+
+    print(f"Finished training! Avg train loss: {np.average(train_loss)}; Avg val loss: {np.average(test_loss)}; Best training loss: {np.min(train_loss)}; Best validation loss: {np.min(test_loss)}")
+    model_path = os.path.join(model_dir, f"model_{epoch}.pt")
+
     # Save the model
     if output_to_file:
         torch.save(model, model_path)
@@ -122,14 +167,14 @@ def train(data, output_to_file = True):
         plt.xlabel('Iterations')
         plt.ylabel('Loss')
         plt.title('Training Loss')
-        plt.savefig(f'{output_dir}/training_loss.png')
+        plt.savefig(f'{train_dir}/training_loss.png')
         plt.clf()
         plt.plot(train_loss)
         plt.plot(test_loss)
         plt.xlabel('Iterations')
         plt.ylabel('Loss')
         plt.title('Training and Validation Loss')
-        plt.savefig(f'{output_dir}/train_and_test_loss.png')
+        plt.savefig(f'{train_dir}/train_and_test_loss.png')
         plt.clf()
         label = ["Residual loss", "IC loss"]
         residual_losses = component_manager.search("Residual", train = False).loss.history
@@ -142,7 +187,7 @@ def train(data, output_to_file = True):
         plt.xlabel('Iterations')
         plt.ylabel('Loss')
         plt.title('Training Losses')
-        plt.savefig(f'{output_dir}/train_losses.png')
+        plt.savefig(f'{train_dir}/res_ic_train_losses.png')
         plt.show()
 
     return np.min(test_loss)

@@ -43,7 +43,7 @@ def _jacobian(model, input, i=None, j=None):
         # compute the full gradient and output it
         jac_fn = jacrev(model)
         #jac = vmap(jac_fn, in_dims = (0, ))
-        return jac_fn(input), jac_fn
+        return jac_fn(input), jac_fn # jac_fn viene ritornata per i jacobiani di ordini successivi
     elif j == None:
         output, vjp_fn = vjp(model, input)
         g = torch.zeros_like(output)
@@ -51,20 +51,13 @@ def _jacobian(model, input, i=None, j=None):
         return vjp_fn(g), vjp_fn
     else:
         g = torch.zeros_like(input)
+        # j-esima componente dell'ultima dim == 1
         g[..., j] = 1
-        output, d = jvp(model, (input, ), (g, ))
+        output, d = jvp(model, (input, ), (g, )) # jacobian vector product, dot product tra jacobiano e vettore
         if i == None:
             return d, None
         else:
-            return d[...,i], None
-
-
-def _hessian(model, input, i = None, j = None):
-    
-    h = hessian(model)
-    hes = vmap(h, in_dims = (0, ), randomness="different")
-    if i==None and j==None:
-        return hes(input)[..., i, j]
+            return d[...,i], None # se i è impostato ritorna l'i-esimo elemento della j-esima colonna
     
 
 

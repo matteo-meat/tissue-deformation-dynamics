@@ -2,59 +2,6 @@ from torch.utils.data import Dataset
 import numpy as np
 import math
 
-
-class DomainSupervisedDataset(Dataset):
-    def __init__(self, path, n = None, batchsize = None, t_max = None):
-        self.name = "DomainSupervisedDataset"
-        self.path = path
-        self.t_max = t_max
-        self.data = self.__exact(self.t_max)
-        if n == None or n>len(self.data):
-            self.n = len(self.data)
-        else:
-            self.n = n
-            self.data = self.data[np.random.choice(self.data.shape[0], n, replace=False), :]
-        if batchsize != None and batchsize > n:
-            batchsize = n
-        self.batchsize = batchsize
-        
-        
-    def __len__(self):
-        return 1 if self.batchsize == None else int(math.ceil(self.n/self.batchsize))
-
-    def __getitem__(self, index):
-        if self.batchsize == None:
-            return self.data
-        else:
-            start = index*self.batchsize
-            end = (index+1)*self.batchsize
-            if end >= self.n:
-                end = self.n - 1
-            return self.data[start:end]
-        
-    def get_params(self):
-        return {"n": self.n, "batchsize": self.batchsize, "t_max": self.t_max}
-        
-    def __str__(self):
-        return f"{self.name}: {self.get_params()}"
-        
-    def __exact(self, t_max = None):
-        sol = []
-        with open(self.path, "r") as f:
-            for line in f:
-                line = line.split(",")
-                s = line[2].strip()
-                s = s.replace('"', '').replace("{", "").replace("}", "").replace("*^", "E")
-                s = float(s)
-                x = float(line[0])
-                t = float(line[1])
-                if t_max != None:
-                    if t <= t_max:
-                        sol.append([x, t, s])
-                else:
-                    sol.append([x, t, s])
-        return np.array(sol)
-
 class DomainDataset(Dataset):
     def __init__(self, xmin, xmax, n, batchsize = None, shuffle = True, period = 1, seed = 1234):
         self.name = "DomainDataset"
@@ -133,10 +80,3 @@ class ICDataset(DomainDataset):
     def __str__(self):
         s = f"ICDataset({self.xmin}, {self.xmax}, n={self.n}, shuffle={self.shuffle}, period={self.period})"
         return s
-
-
-class BCDataset(DomainDataset):
-    def __init__(self, xmin, xmax, n, rand=True, shuffle=False, period=1):
-        super().__init__(xmin, xmax, n)
-    
-    #TO BE IMPLEMENTED
