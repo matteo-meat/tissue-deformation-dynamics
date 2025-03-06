@@ -60,7 +60,7 @@ It will save into __/matlab/only_damp/matlab_evaluations/{model_name}_{index}__ 
 ### Early Stopping
 - [Early stopping](https://github.com/Bjarten/early-stopping-pytorch)
 
-## Authors
+## Authors:
 - Matteo Carnebella
 - Michael Corelli
 - Francesco Di Lorenzo
